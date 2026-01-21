@@ -1,0 +1,78 @@
+@use '../mixins' as *;
+
+// ========================================
+// Table Styles
+// ========================================
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+
+    &__header {
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    &__th {
+        text-align: left;
+        padding: 1rem;
+        color: var(--color-text-muted);
+        font-weight: 500;
+        font-size: 0.875rem;
+
+        &--right {
+            text-align: right;
+        }
+    }
+
+    &__row {
+        border-bottom: 1px solid var(--color-border);
+        transition: background-color var(--transition-fast);
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        &:hover {
+            background-color: var(--color-bg-elevated);
+        }
+    }
+
+    &__cell {
+        padding: 1rem;
+
+        &--mono {
+            font-family: var(--font-family-mono);
+            font-size: 0.875rem;
+        }
+
+        &--muted {
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        &--actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+    }
+}
+
+// File/item with icon
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    &__icon {
+        padding: 0.5rem;
+        background: rgba(var(--color-accent-rgb), 0.1);
+        border-radius: 6px;
+        color: var(--color-accent);
+    }
+
+    &__name {
+        font-family: var(--font-family-mono);
+        font-size: 0.875rem;
+    }
+}

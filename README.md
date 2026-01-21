@@ -1,0 +1,98 @@
+# 🎮 Kweebec Manager
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/Backend-Rust-orange.svg)](https://www.rust-lang.org/)
+[![React](https://img.shields.io/badge/Frontend-React-blue.svg)](https://react.dev/)
+
+**Gestionnaire de serveurs de jeux moderne et performant** — Inspiré de [Crafty Controller](https://craftycontrol.com/), conçu pour Hytale et au-delà.
+
+![Dashboard Preview](docs/assets/dashboard-preview.png)
+
+---
+
+## ✨ Fonctionnalités
+
+- 🖥️ **Interface Web Premium** — Dashboard moderne avec SCSS, animations fluides
+- 🎮 **Multi-Serveurs** — Gérez plusieurs serveurs depuis une interface unique
+- 📺 **Console Live** — WebSocket temps réel pour les logs et commandes
+- 💾 **Backups Automatiques** — Sauvegardes planifiées avec compression
+- 🔔 **Discord Webhooks** — Notifications enrichies
+- ⏰ **Tâches Planifiées** — Redémarrages, mises à jour automatiques
+- 🔐 **Authentification JWT** — Sécurisé avec gestion des rôles
+- 🐳 **Docker Ready** — Déploiement simplifié
+
+---
+
+## 🚀 Installation
+
+### Linux (Docker) — Recommandé
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thefrcrazy/kweebec-manager/main/install/linux/quick-install.sh | bash
+```
+
+### Linux (Sans Docker)
+
+```bash
+git clone https://github.com/thefrcrazy/kweebec-manager.git
+cd kweebec-manager
+./install/linux/install.sh
+```
+
+### Windows
+
+```powershell
+# Exécuter PowerShell en Administrateur
+irm https://raw.githubusercontent.com/thefrcrazy/kweebec-manager/main/install/windows/install.ps1 | iex
+```
+
+---
+
+## 📖 Documentation
+
+- [Guide d'Installation Complet](docs/INSTALL.md)
+- [Configuration des Serveurs](docs/SERVERS.md)
+- [API Reference](docs/API.md)
+
+---
+
+## 🛠️ Stack Technique
+
+| Composant | Technologie |
+|-----------|-------------|
+| **Frontend** | React + Vite + TypeScript + SCSS |
+| **Backend** | Rust + Actix-Web |
+| **Base de données** | SQLite |
+| **Runtime** | Bun (frontend), Tokio (backend) |
+| **Containerisation** | Docker + Docker Compose |
+
+---
+
+## 🎯 Roadmap
+
+- [x] Structure du projet
+- [ ] Backend API REST
+- [ ] Console WebSocket
+- [ ] Interface Dashboard
+- [ ] Support Hytale
+- [ ] Docker Compose
+- [ ] Support Minecraft (v1.1)
+
+---
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! Voir [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## 📜 Licence
+
+Ce projet est sous licence [MIT](LICENSE).
+
+---
+
+## 🙏 Crédits
+
+- Inspiré par [Crafty Controller](https://craftycontrol.com/)
+- Basé sur [hytale-server](https://github.com/thefrcrazy/hytale-server)

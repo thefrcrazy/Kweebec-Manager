@@ -1,0 +1,268 @@
+@use '../mixins' as *;
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background-color: var(--color-bg-secondary);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    z-index: 50;
+    padding: var(--spacing-4);
+    transition: width var(--transition-smooth);
+
+    &__header,
+    &__nav {
+        overflow-x: hidden;
+    }
+
+    &--collapsed {
+        width: var(--sidebar-collapsed-width);
+        padding: var(--spacing-4) var(--spacing-2);
+        align-items: center;
+
+        // Toggle button position when collapsed
+        .sidebar__toggle {
+            left: 60px;
+            transform: rotate(180deg);
+        }
+
+        .sidebar__header {
+            justify-content: center;
+            padding-bottom: var(--spacing-3);
+        }
+
+        .sidebar__logo--small {
+            margin: 0 auto;
+        }
+
+        .sidebar__nav {
+            width: 100%;
+            align-items: center;
+        }
+
+        .sidebar__link {
+            justify-content: center;
+            width: 100%;
+            padding: var(--spacing-2) 0;
+            gap: 0;
+            height: 36px; // Force same height as expanded (20px icon + 16px padding)
+
+            span {
+                opacity: 0;
+                max-width: 0;
+            }
+        }
+
+        .sidebar__footer {
+            padding-top: var(--spacing-3);
+        }
+
+        .sidebar__version {
+            padding: var(--spacing-2);
+            font-size: 0.65rem;
+        }
+    }
+
+    // Toggle button styles
+    &__toggle {
+        position: absolute;
+        top: var(--spacing-4);
+        // Expanded state: align right inside header area
+        // Sidebar width (280) - padding (16) - button width (32) = 232px
+        // But header has justified content. Let's position it explicitly.
+        // Or better: right: var(--spacing-4);
+        left: calc(var(--sidebar-width) - var(--spacing-4) - 32px);
+
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-md);
+        background: var(--color-accent);
+        border: none;
+        outline: none;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: left var(--transition-smooth), transform var(--transition-smooth), background-color var(--transition-fast);
+        z-index: 60; // Above header content
+
+        &:hover {
+            opacity: 0.9;
+        }
+
+        &:focus {
+            outline: none;
+        }
+
+        &:focus-visible {
+            box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px var(--color-accent);
+        }
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: var(--spacing-4);
+        gap: var(--spacing-2);
+    }
+
+    &__logo {
+        &--full {
+            height: 60px;
+            max-width: 180px;
+            object-fit: contain;
+        }
+
+        &--small {
+            height: 60px;
+            width: 60px;
+            object-fit: contain;
+        }
+    }
+
+    // Toggle button - in header next to logo
+
+
+    &__nav {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-1);
+        flex: 1;
+    }
+
+    &__link {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-3);
+        padding: var(--spacing-2) var(--spacing-3);
+        color: var(--color-text-muted);
+        text-decoration: none;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+        width: 100%;
+
+        span {
+            transition: opacity var(--transition-smooth), max-width var(--transition-smooth);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            opacity: 1;
+            max-width: 200px;
+        }
+
+        &:hover {
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-elevated);
+        }
+
+        &.active {
+            color: white;
+            background-color: var(--color-accent);
+        }
+    }
+
+    &__footer {
+        margin-top: auto;
+        padding-top: var(--spacing-4);
+        border-top: 1px solid var(--color-border);
+        display: flex;
+        justify-content: center;
+    }
+
+    &__version {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        font-family: var(--font-family-mono);
+        padding: var(--spacing-2) var(--spacing-3);
+        background: var(--color-bg-tertiary);
+        border-radius: var(--radius-md);
+        transition: all var(--transition-fast);
+
+        &:hover {
+            color: var(--color-text-secondary);
+        }
+    }
+
+
+}
+
+// Mobile responsive
+@media (max-width: 1023px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform var(--transition-smooth);
+
+        &.open {
+            transform: translateX(0);
+        }
+    }
+}
+
+// ========================================
+// Tooltip Component
+// ========================================
+
+.tooltip-wrapper {
+    position: relative;
+    display: inline-flex;
+    width: 100%;
+}
+
+.tooltip {
+    position: absolute;
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    animation: tooltipFadeIn 0.15s ease-out;
+
+    &--top {
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    &--right {
+        left: calc(100% + 16px);
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    &--bottom {
+        top: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    &--left {
+        right: calc(100% + 8px);
+        top: 50%;
+        transform: translateY(-50%);
+    }
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50%) translateX(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+    }
+}

@@ -1,0 +1,314 @@
+use actix_web::{web, HttpResponse, Result};
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use uuid::Uuid;
+
+use crate::db::DbPool;
+use crate::error::AppError;
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct UserResponse {
+    pub id: String,
+    pub username: String,
+    pub role: String,
+    pub is_active: bool,
+    pub language: String,
+    pub accent_color: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub last_login: Option<String>,
+    pub last_ip: Option<String>,
+    pub allocated_servers: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateUserRequest {
+    pub username: String,
+    pub password: String,
+    pub role: Option<String>,
+    pub is_active: Option<bool>,
+    pub language: Option<String>,
+    pub accent_color: Option<String>,
+    pub allocated_servers: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserRequest {
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub role: Option<String>,
+    pub is_active: Option<bool>,
+    pub language: Option<String>,
+    pub accent_color: Option<String>,
+    pub allocated_servers: Option<Vec<String>>,
+}
+
+pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/users")
+            .route("", web::get().to(list_users))
+            .route("", web::post().to(create_user))
+            .route("/{id}", web::get().to(get_user))
+            .route("/{id}", web::put().to(update_user))
+            .route("/{id}", web::delete().to(delete_user)),
+    );
+}
+
+async fn list_users(pool: web::Data<DbPool>) -> Result<HttpResponse, AppError> {
+    let users: Vec<UserResponse> = sqlx::query_as(
+        r#"SELECT id, username, role, 
+           COALESCE(is_active, 1) as is_active,
+           COALESCE(language, 'fr') as language,
+           COALESCE(accent_color, '#3A82F6') as accent_color,
+           created_at, updated_at, last_login, last_ip, allocated_servers
+           FROM users ORDER BY created_at DESC"#,
+    )
+    .fetch_all(pool.get_ref())
+    .await?;
+
+    // Parse allocated_servers JSON for each user
+    let users_with_servers: Vec<serde_json::Value> = users
+        .into_iter()
+        .map(|user| {
+            let servers: Vec<String> = user
+                .allocated_servers
+                .as_ref()
+                .and_then(|s| serde_json::from_str(s).ok())
+                .unwrap_or_default();
+
+            serde_json::json!({
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "is_active": user.is_active,
+                "language": user.language,
+                "accent_color": user.accent_color,
+                "created_at": user.created_at,
+                "updated_at": user.updated_at,
+                "last_login": user.last_login,
+                "last_ip": user.last_ip,
+                "allocated_servers": servers
+            })
+        })
+        .collect();
+
+    Ok(HttpResponse::Ok().json(users_with_servers))
+}
+
+async fn get_user(
+    pool: web::Data<DbPool>,
+    path: web::Path<String>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = path.into_inner();
+
+    let user: UserResponse = sqlx::query_as(
+        r#"SELECT id, username, role,
+           COALESCE(is_active, 1) as is_active,
+           COALESCE(language, 'fr') as language,
+           COALESCE(accent_color, '#3A82F6') as accent_color,
+           created_at, updated_at, last_login, last_ip, allocated_servers
+           FROM users WHERE id = ?"#,
+    )
+    .bind(&user_id)
+    .fetch_optional(pool.get_ref())
+    .await?
+    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    let servers: Vec<String> = user
+        .allocated_servers
+        .as_ref()
+        .and_then(|s| serde_json::from_str(s).ok())
+        .unwrap_or_default();
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "id": user.id,
+        "username": user.username,
+        "role": user.role,
+        "is_active": user.is_active,
+        "language": user.language,
+        "accent_color": user.accent_color,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+        "last_login": user.last_login,
+        "last_ip": user.last_ip,
+        "allocated_servers": servers
+    })))
+}
+
+async fn create_user(
+    pool: web::Data<DbPool>,
+    body: web::Json<CreateUserRequest>,
+) -> Result<HttpResponse, AppError> {
+    // Check if username already exists
+    let exists: Option<(i32,)> =
+        sqlx::query_as("SELECT 1 FROM users WHERE username = ?")
+            .bind(&body.username)
+            .fetch_optional(pool.get_ref())
+            .await?;
+
+    if exists.is_some() {
+        return Err(AppError::BadRequest("Username already exists".into()));
+    }
+
+    let password_hash = bcrypt::hash(&body.password, bcrypt::DEFAULT_COST)
+        .map_err(|_| AppError::Internal("Password hashing failed".into()))?;
+
+    let id = Uuid::new_v4().to_string();
+    let now = Utc::now().to_rfc3339();
+    let role = body.role.clone().unwrap_or_else(|| "user".to_string());
+    let is_active = body.is_active.unwrap_or(true);
+    let language = body.language.clone().unwrap_or_else(|| "fr".to_string());
+    
+    // Get default color from settings if not provided
+    let accent_color = if let Some(ref color) = body.accent_color {
+        color.clone()
+    } else {
+        // Try to get from settings
+        let default_color: Option<(String,)> = sqlx::query_as(
+            "SELECT value FROM settings WHERE key = 'login_default_color'"
+        )
+        .fetch_optional(pool.get_ref())
+        .await?;
+        default_color.map(|c| c.0).unwrap_or_else(|| "#3A82F6".to_string())
+    };
+    
+    let allocated_servers = body
+        .allocated_servers
+        .as_ref()
+        .map(|s| serde_json::to_string(s).unwrap_or_else(|_| "[]".to_string()));
+
+    sqlx::query(
+        r#"INSERT INTO users (id, username, password_hash, role, is_active, language, accent_color, allocated_servers, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+    )
+    .bind(&id)
+    .bind(&body.username)
+    .bind(&password_hash)
+    .bind(&role)
+    .bind(is_active)
+    .bind(&language)
+    .bind(&accent_color)
+    .bind(&allocated_servers)
+    .bind(&now)
+    .bind(&now)
+    .execute(pool.get_ref())
+    .await?;
+
+    Ok(HttpResponse::Created().json(serde_json::json!({
+        "id": id,
+        "username": body.username,
+        "role": role,
+        "is_active": is_active,
+        "message": "User created successfully"
+    })))
+}
+
+async fn update_user(
+    pool: web::Data<DbPool>,
+    path: web::Path<String>,
+    body: web::Json<UpdateUserRequest>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = path.into_inner();
+    let now = Utc::now().to_rfc3339();
+
+    // Check if user exists
+    let exists: Option<(i32,)> = sqlx::query_as("SELECT 1 FROM users WHERE id = ?")
+        .bind(&user_id)
+        .fetch_optional(pool.get_ref())
+        .await?;
+
+    if exists.is_none() {
+        return Err(AppError::NotFound("User not found".into()));
+    }
+
+    // Build dynamic update query
+    let mut updates = vec!["updated_at = ?"];
+    let mut has_password = false;
+
+    if body.username.is_some() {
+        updates.push("username = ?");
+    }
+    if body.password.is_some() {
+        updates.push("password_hash = ?");
+        has_password = true;
+    }
+    if body.role.is_some() {
+        updates.push("role = ?");
+    }
+    if body.is_active.is_some() {
+        updates.push("is_active = ?");
+    }
+    if body.language.is_some() {
+        updates.push("language = ?");
+    }
+    if body.accent_color.is_some() {
+        updates.push("accent_color = ?");
+    }
+    if body.allocated_servers.is_some() {
+        updates.push("allocated_servers = ?");
+    }
+
+    let query = format!("UPDATE users SET {} WHERE id = ?", updates.join(", "));
+    let mut sql_query = sqlx::query(&query);
+
+    // Bind updated_at first
+    sql_query = sql_query.bind(&now);
+
+    // Bind optional fields in order
+    if let Some(ref username) = body.username {
+        sql_query = sql_query.bind(username);
+    }
+    if has_password {
+        let password_hash = bcrypt::hash(body.password.as_ref().unwrap(), bcrypt::DEFAULT_COST)
+            .map_err(|_| AppError::Internal("Password hashing failed".into()))?;
+        sql_query = sql_query.bind(password_hash);
+    }
+    if let Some(ref role) = body.role {
+        sql_query = sql_query.bind(role);
+    }
+    if let Some(is_active) = body.is_active {
+        sql_query = sql_query.bind(is_active);
+    }
+    if let Some(ref language) = body.language {
+        sql_query = sql_query.bind(language);
+    }
+    if let Some(ref accent_color) = body.accent_color {
+        sql_query = sql_query.bind(accent_color);
+    }
+    if let Some(ref servers) = body.allocated_servers {
+        let servers_json = serde_json::to_string(servers).unwrap_or_else(|_| "[]".to_string());
+        sql_query = sql_query.bind(servers_json);
+    }
+
+    // Bind user_id last
+    sql_query = sql_query.bind(&user_id);
+
+    sql_query.execute(pool.get_ref()).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "message": "User updated successfully"
+    })))
+}
+
+async fn delete_user(
+    pool: web::Data<DbPool>,
+    path: web::Path<String>,
+) -> Result<HttpResponse, AppError> {
+    let user_id = path.into_inner();
+
+    let result = sqlx::query("DELETE FROM users WHERE id = ?")
+        .bind(&user_id)
+        .execute(pool.get_ref())
+        .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::NotFound("User not found".into()));
+    }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": true,
+        "message": "User deleted successfully"
+    })))
+}

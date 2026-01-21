@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.bun/
+
+# Build outputs
+dist/
+build/
+target/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Server files (user data)
+servers/
+backups/
+
+# Rust
+Cargo.lock
+**/*.rs.bk
+
+# Frontend
+frontend/.cache/
+frontend/node_modules/

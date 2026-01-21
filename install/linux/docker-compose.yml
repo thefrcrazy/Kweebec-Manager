@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  kweebec:
+    image: kweebec/manager:latest
+    build:
+      context: ../..
+      dockerfile: install/linux/Dockerfile
+    container_name: kweebec-manager
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8443
+      - DATABASE_URL=sqlite:/data/kweebec.db?mode=rwc
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - SERVERS_DIR=/servers
+      - BACKUPS_DIR=/backups
+      - RUST_LOG=info
+    volumes:
+      - kweebec-data:/data
+      - kweebec-servers:/servers
+      - kweebec-backups:/backups
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8443/api/v1/settings"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  kweebec-data:
+    driver: local
+  kweebec-servers:
+    driver: local
+  kweebec-backups:
+    driver: local
+
+networks:
+  default:
+    name: kweebec-network

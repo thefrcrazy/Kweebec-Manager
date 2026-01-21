@@ -1,0 +1,128 @@
+@use '../mixins' as *;
+
+// Button styles
+.btn {
+    @include button-base;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    // Primary Button (Accent)
+    &--primary {
+        background-color: var(--color-accent);
+        color: var(--color-text-inverse);
+        font-weight: 600;
+
+        &:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+    }
+
+    // Secondary Button (Outline)
+    &--secondary {
+        background-color: transparent;
+        border-color: var(--color-border);
+        color: var(--color-text-primary);
+
+        &:hover:not(:disabled) {
+            background-color: var(--color-bg-elevated);
+            border-color: var(--color-border-hover);
+        }
+    }
+
+    // Ghost Button (Text only)
+    &--ghost {
+        background-color: transparent;
+        color: var(--color-text-muted);
+
+        &:hover:not(:disabled) {
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-tertiary);
+        }
+    }
+
+    // Danger Button
+    &--danger {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--color-danger);
+
+        &:hover:not(:disabled) {
+            background-color: rgba(239, 68, 68, 0.2);
+        }
+    }
+
+    // Success Button
+    &--success {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--color-success);
+
+        &:hover:not(:disabled) {
+            background-color: rgba(16, 185, 129, 0.2);
+        }
+    }
+
+    // Sizes
+    &--sm {
+        padding: var(--spacing-1) var(--spacing-3);
+        font-size: 0.75rem;
+    }
+
+    &--lg {
+        padding: var(--spacing-3) var(--spacing-6);
+        font-size: 1rem;
+    }
+
+    &--icon {
+        padding: var(--spacing-2);
+        aspect-ratio: 1;
+        height: 40px;
+    }
+
+    // Full width
+    &--full {
+        width: 100%;
+    }
+}
+
+// Button group
+.btn-group {
+    display: flex;
+    gap: var(--spacing-2);
+}
+
+// Flex center utility
+.flex-center {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+// Spinner
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+
+    &--sm {
+        width: 16px;
+        height: 16px;
+        border-width: 2px;
+    }
+
+    &--light {
+        border-color: rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
