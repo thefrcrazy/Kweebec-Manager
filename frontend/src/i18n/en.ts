@@ -29,7 +29,7 @@ export const en: TranslationType = {
         version: "Version"
     },
     dashboard: {
-        welcome: "Welcome to Kweebec Manager",
+        welcome: "Gérez vos instances de serveurs de jeu",
         system_status: "System Status",
         cpu_usage: "CPU Usage",
         ram_usage: "RAM Usage",

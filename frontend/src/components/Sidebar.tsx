@@ -7,7 +7,6 @@ import {
     Settings,
     HardDrive,
     ChevronsLeft,
-    Users,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -26,7 +25,6 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         { icon: LayoutDashboard, label: t('sidebar.dashboard'), path: '/dashboard' },
         { icon: Server, label: t('sidebar.servers'), path: '/servers' },
         { icon: HardDrive, label: t('sidebar.backups'), path: '/backups' },
-        { icon: Users, label: t('sidebar.users'), path: '/users' },
         { icon: Settings, label: t('sidebar.settings'), path: '/panel-settings' },
     ];
 

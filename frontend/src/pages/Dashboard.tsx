@@ -31,6 +31,7 @@ interface ServerInfo {
 }
 
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePageTitle } from '../contexts/PageTitleContext';
 
 export default function Dashboard() {
     const { t } = useLanguage();
@@ -54,6 +55,11 @@ export default function Dashboard() {
             clearInterval(serversInterval);
         };
     }, []);
+
+    const { setPageTitle } = usePageTitle();
+    useEffect(() => {
+        setPageTitle(t('sidebar.dashboard'), t('dashboard.welcome'));
+    }, [setPageTitle, t]);
 
     // ... (rest of functions: fetchData, fetchServers, fetchSystemStats, handleServerAction)
 
@@ -159,19 +165,6 @@ export default function Dashboard() {
 
     return (
         <div>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-header__title">{t('sidebar.dashboard')}</h1>
-                    <p className="page-header__subtitle">{t('dashboard.welcome')}</p>
-                </div>
-                <div className="page-header__actions">
-                    <Link to="/servers" className="btn btn--primary">
-                        <Plus size={18} />
-                        {t('servers.create_new')}
-                    </Link>
-                </div>
-            </div>
-
             {/* Server Stats */}
             <div className="stats-grid stats-grid--4col">
                 <div className="card stat-card">

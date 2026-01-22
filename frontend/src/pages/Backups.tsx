@@ -10,6 +10,7 @@ interface Backup {
 }
 
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePageTitle } from '../contexts/PageTitleContext';
 
 export default function Backups() {
     const { t } = useLanguage();
@@ -19,6 +20,11 @@ export default function Backups() {
     useEffect(() => {
         fetchBackups();
     }, []);
+
+    const { setPageTitle } = usePageTitle();
+    useEffect(() => {
+        setPageTitle(t('backups.title'), t('backups.subtitle'));
+    }, [setPageTitle, t]);
 
     const fetchBackups = async () => {
         try {
@@ -88,12 +94,6 @@ export default function Backups() {
 
     return (
         <div>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-header__title">{t('backups.title')}</h1>
-                    <p className="page-header__subtitle">{t('backups.subtitle')}</p>
-                </div>
-            </div>
 
             {backups.length === 0 ? (
                 <div className="card empty-state">

@@ -1,6 +1,11 @@
-import { Plus, Play, Square, Trash2, Terminal } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+    Plus, Play, Square, Terminal, Server as ServerIcon, Settings
+} from 'lucide-react';
+import Table from '../components/Table';
+import { useLanguage } from '../contexts/LanguageContext';
+import { usePageTitle } from '../contexts/PageTitleContext';
 
 interface Server {
     id: string;
@@ -9,18 +14,39 @@ interface Server {
     status: string;
     executable_path: string;
     working_dir: string;
+    auto_start: boolean;
 }
-
-import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Servers() {
     const { t } = useLanguage();
     const [servers, setServers] = useState<Server[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [showCreateModal, setShowCreateModal] = useState(false);
+
+    // Mock stats for UI demo (since backend doesn't provide them in list yet)
+    // In real impl, these should come from websocket or API
+    const getMockStats = (server: Server) => {
+        if (server.status !== 'running') return { cpu: 0, memory: 0, memoryMax: 4096, disk: 1.2, players: 0, maxPlayers: 20 };
+        // Random values for running servers to show UI
+        return {
+            cpu: Math.floor(Math.random() * 30) + 1,
+            memory: Math.floor(Math.random() * 2048) + 512,
+            memoryMax: 4096,
+            disk: 1.3,
+            players: Math.floor(Math.random() * 5),
+            maxPlayers: 20
+        };
+    };
+
+    const { setPageTitle } = usePageTitle();
+    useEffect(() => {
+        setPageTitle(t('servers.title'), t('dashboard.welcome'), { to: '/' });
+    }, [setPageTitle, t]);
 
     useEffect(() => {
         fetchServers();
+        // Setup polling for status updates
+        const interval = setInterval(fetchServers, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     const fetchServers = async () => {
@@ -40,283 +66,164 @@ export default function Servers() {
         }
     };
 
-    const handleAction = async (id: string, action: 'start' | 'stop') => {
+    const handleAction = async (id: string, action: 'start' | 'stop' | 'restart') => {
         try {
             await fetch(`/api/v1/servers/${id}/${action}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
             });
             fetchServers();
-            // Polling recommended here
         } catch (e) {
             console.error(e);
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm(t('backups.delete_confirm'))) return;
 
-        await fetch(`/api/v1/servers/${id}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-        fetchServers();
-    };
 
-    if (isLoading) return <div>Chargement...</div>;
+    if (isLoading) {
+        return (
+            <div className="loading-screen">
+                <div className="spinner"></div>
+            </div>
+        );
+    }
 
     return (
         <div>
             <div className="page-header">
                 <div>
                     <h1 className="page-header__title">{t('servers.title')}</h1>
-                    <p className="page-header__subtitle">{t('dashboard.welcome')}</p>
+                    <p className="page-header__subtitle">Gérez vos instances de serveurs de jeu</p>
                 </div>
-                <button className="btn btn--primary" onClick={() => setShowCreateModal(true)}>
+                <Link to="/servers/create" className="btn btn--primary">
                     <Plus size={18} />
                     {t('servers.create_new')}
-                </button>
+                </Link>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
-                {servers.map((server) => (
-                    <div key={server.id} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0', overflow: 'hidden' }}>
-
-                        {/* Status Bar */}
-                        <div style={{
-                            height: '4px',
-                            background: server.status === 'running' ? '#10b981' : 'var(--color-bg-elevated)',
-                            width: '100%'
-                        }} />
-
-                        <div style={{ padding: '1.5rem', flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                <div>
-                                    <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.25rem' }}>{server.name}</h3>
-                                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem' }}>
-                                        <span style={{
-                                            background: 'var(--color-bg-elevated)',
-                                            padding: '0.125rem 0.5rem',
-                                            borderRadius: '4px',
-                                            color: 'var(--color-text-muted)'
-                                        }}>
-                                            {server.game_type.toUpperCase()}
-                                        </span>
-                                        <span style={{
-                                            background: server.status === 'running' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                            color: server.status === 'running' ? '#10b981' : '#ef4444',
-                                            padding: '0.125rem 0.5rem',
-                                            borderRadius: '4px',
-                                            border: `1px solid ${server.status === 'running' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
-                                        }}>
-                                            {server.status === 'running' ? 'EN LIGNE' : 'ARRÊTÉ'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    {/* Quick Actions */}
-                                    {server.status === 'stopped' ? (
-                                        <button
-                                            className="btn btn--success btn--icon"
-                                            style={{ width: '32px', height: '32px', padding: 0 }}
-                                            onClick={() => handleAction(server.id, 'start')}
-                                            title="Démarrer"
-                                        >
-                                            <Play size={16} />
-                                        </button>
-                                    ) : (
-                                        <button
-                                            className="btn btn--danger btn--icon"
-                                            style={{ width: '32px', height: '32px', padding: 0 }}
-                                            onClick={() => handleAction(server.id, 'stop')}
-                                            title="Arrêter"
-                                        >
-                                            <Square size={16} />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div style={{
-                                background: 'var(--color-bg-secondary)',
-                                padding: '0.75rem',
-                                borderRadius: '6px',
-                                fontSize: '0.875rem',
-                                color: 'var(--color-text-muted)',
-                                fontFamily: 'var(--font-family-mono)',
-                                marginBottom: '1.5rem',
-                                wordBreak: 'break-all'
-                            }}>
-                                <span style={{ color: 'var(--color-secondary)' }}>$</span> {server.working_dir}
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                <Link to={`/servers/${server.id}`} className="btn btn--secondary" style={{ flex: 1 }}>
-                                    <Terminal size={16} />
-                                    Console
-                                </Link>
-                                <button className="btn btn--ghost btn--icon" onClick={() => handleDelete(server.id)} title="Supprimer">
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </div>
+            {servers.length === 0 ? (
+                <div className="empty-state">
+                    <div className="empty-state__icon">
+                        <ServerIcon size={48} />
                     </div>
-                ))}
+                    <h3 className="empty-state__title">Aucun serveur</h3>
+                    <p className="empty-state__description">Commencez par créer votre premier serveur Hytale.</p>
+                    <Link to="/servers/create" className="btn btn--primary">
+                        <Plus size={18} />
+                        Créer un serveur
+                    </Link>
+                </div>
 
-                {/* Create New Card (Empty State) */}
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="card"
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '2rem',
-                        borderStyle: 'dashed',
-                        cursor: 'pointer',
-                        minHeight: '220px',
-                        background: 'transparent',
-                        borderColor: 'var(--color-border)',
-                    }}
-                >
-                    <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '50%',
-                        background: 'var(--color-bg-elevated)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '1rem',
-                        color: 'var(--color-text-muted)'
-                    }}>
-                        <Plus size={24} />
-                    </div>
-                    <span style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>Créer un serveur</span>
-                </button>
-            </div>
+            ) : (
+                <Table>
+                    <thead>
+                        <tr>
+                            <th style={{ width: '25%' }}>Serveur</th>
+                            <th style={{ width: '15%' }}>Actions</th>
+                            <th style={{ width: '15%' }}>CPU Usage</th>
+                            <th style={{ width: '15%' }}>Memory Usage</th>
+                            <th style={{ width: '10%' }}>Disk</th>
+                            <th style={{ width: '10%' }}>Players</th>
+                            <th style={{ width: '10%', textAlign: 'right' }}>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {servers.map(server => {
+                            const stats = getMockStats(server);
+                            const isRunning = server.status === 'running';
 
-            {showCreateModal && (
-                <CreateServerModal onClose={() => setShowCreateModal(false)} onCreated={fetchServers} />
+                            return (
+                                <tr key={server.id} style={{
+                                    background: isRunning ? 'rgba(16, 185, 129, 0.02)' : 'transparent'
+                                }}>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '8px',
+                                                background: isRunning ? 'rgba(16, 185, 129, 0.1)' : 'var(--color-bg-tertiary)',
+                                                color: isRunning ? 'var(--color-success)' : 'var(--color-text-muted)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <ServerIcon size={20} />
+                                            </div>
+                                            <div>
+                                                <Link to={`/servers/${server.id}`} className="text-primary" style={{ fontWeight: 600, display: 'block', textDecoration: 'none' }}>
+                                                    {server.name}
+                                                </Link>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{server.game_type}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="table__actions" style={{ justifyContent: 'flex-start' }}>
+                                            {server.status === 'stopped' ? (
+                                                <button
+                                                    className="btn btn--icon btn--ghost"
+                                                    onClick={() => handleAction(server.id, 'start')}
+                                                    title="Démarrer"
+                                                    style={{ color: 'var(--color-success)' }}
+                                                >
+                                                    <Play size={18} />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    className="btn btn--icon btn--ghost"
+                                                    onClick={() => handleAction(server.id, 'stop')}
+                                                    title="Arrêter"
+                                                    style={{ color: 'var(--color-danger)' }}
+                                                >
+                                                    <Square size={18} />
+                                                </button>
+                                            )}
+
+                                            <Link to={`/servers/${server.id}`} className="btn btn--icon btn--ghost" title="Console">
+                                                <Terminal size={18} />
+                                            </Link>
+
+                                            <Link to={`/servers/${server.id}/settings`} className="btn btn--icon btn--ghost" title="Paramètres">
+                                                <Settings size={18} />
+                                            </Link>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <div style={{ height: '6px', width: '100%', background: 'var(--color-bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
+                                                <div style={{ width: `${stats.cpu}%`, height: '100%', background: 'var(--color-accent)', transition: 'width 0.5s ease' }} />
+                                            </div>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{stats.cpu.toFixed(1)}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <div style={{ height: '6px', width: '100%', background: 'var(--color-bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
+                                                <div style={{ width: `${(stats.memory / stats.memoryMax) * 100}%`, height: '100%', background: 'var(--color-info)', transition: 'width 0.5s ease' }} />
+                                            </div>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                                {stats.memory} MB / {stats.memoryMax / 1024} GB
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="text-muted" style={{ fontFamily: 'var(--font-family-mono)', fontSize: '0.85rem' }}>
+                                        {stats.disk} GB
+                                    </td>
+                                    <td className="text-muted">
+                                        {stats.players} / {stats.maxPlayers}
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <span className={`badge badge--${server.status === 'running' ? 'success' : 'danger'}`}>
+                                            {server.status === 'running' ? 'Online' : 'Offline'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </Table>
             )}
-        </div>
-    );
-}
-
-function CreateServerModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-    const { t } = useLanguage();
-    const [formData, setFormData] = useState({
-        name: '',
-        executable_path: 'HytaleServer.jar',
-        working_dir: '/opt/hytale',
-        max_memory: '8G',
-        min_memory: '4G',
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-
-        try {
-            const response = await fetch('/api/v1/servers', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                },
-                body: JSON.stringify({ ...formData, game_type: 'hytale' }),
-            });
-
-            if (response.ok) {
-                onCreated();
-                onClose();
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }} onClick={onClose}>
-            <div className="card" style={{ maxWidth: '500px', width: '100%', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>{t('servers.create_new')}</h2>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-                    <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>{t('backups.backup_name')}</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="Mon Serveur Hytale"
-                            required
-                            className="input"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Répertoire de travail</label>
-                        <input
-                            type="text"
-                            value={formData.working_dir}
-                            onChange={(e) => setFormData({ ...formData, working_dir: e.target.value })}
-                            placeholder="/opt/hytale"
-                            required
-                            className="input"
-                            style={{ fontFamily: 'var(--font-family-mono)' }}
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Fichier exécutable</label>
-                        <input
-                            type="text"
-                            value={formData.executable_path}
-                            onChange={(e) => setFormData({ ...formData, executable_path: e.target.value })}
-                            placeholder="HytaleServer.jar"
-                            required
-                            className="input"
-                            style={{ fontFamily: 'var(--font-family-mono)' }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>RAM Min</label>
-                            <input
-                                type="text"
-                                value={formData.min_memory}
-                                onChange={(e) => setFormData({ ...formData, min_memory: e.target.value })}
-                                placeholder="4G"
-                                className="input"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>RAM Max</label>
-                            <input
-                                type="text"
-                                value={formData.max_memory}
-                                onChange={(e) => setFormData({ ...formData, max_memory: e.target.value })}
-                                placeholder="8G"
-                                className="input"
-                            />
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                        <button type="button" className="btn btn--secondary" onClick={onClose} style={{ flex: 1 }}>
-                            {t('common.cancel')}
-                        </button>
-                        <button type="submit" className="btn btn--primary" disabled={isSubmitting} style={{ flex: 1 }}>
-                            {isSubmitting ? t('common.loading') : t('common.create')}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        </div >
     );
 }

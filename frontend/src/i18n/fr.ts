@@ -27,7 +27,7 @@ export const fr = {
         version: "Version"
     },
     dashboard: {
-        welcome: "Bienvenue sur Kweebec Manager",
+        welcome: "Gérez vos instances de serveurs de jeu",
         system_status: "État du Système",
         cpu_usage: "Utilisation CPU",
         ram_usage: "Utilisation RAM",

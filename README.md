@@ -77,6 +77,9 @@ irm https://raw.githubusercontent.com/thefrcrazy/kweebec-manager/main/install/wi
 - [ ] Support Hytale
 - [ ] Docker Compose
 - [ ] Support Minecraft (v1.1)
+- [ ] Support Palworld
+- [ ] Support Valheim
+- [ ] Support Custom Steam Server
 
 ---
 

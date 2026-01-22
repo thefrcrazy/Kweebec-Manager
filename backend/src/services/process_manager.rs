@@ -3,7 +3,9 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
-use tracing::info;
+use std::fs;
+use tracing::{info, warn};
+use serde_json::Value;
 
 use crate::error::AppError;
 
@@ -53,6 +55,7 @@ impl ProcessManager {
         min_memory: Option<&str>,
         max_memory: Option<&str>,
         extra_args: Option<&str>,
+        config: Option<&serde_json::Value>,
     ) -> Result<(), AppError> {
         let mut processes = self.processes.write().await;
 
@@ -65,6 +68,12 @@ impl ProcessManager {
         let min_mem = min_memory.unwrap_or("4G");
         let max_mem = max_memory.unwrap_or("8G");
 
+        // Generate configuration files if config provided
+        if let Some(config) = config {
+            self.generate_server_properties(working_dir, config).map_err(|e| AppError::Internal(format!("Failed to generate server.properties: {}", e)))?;
+            self.generate_world_config(working_dir, config).map_err(|e| AppError::Internal(format!("Failed to generate world-config.json: {}", e)))?;
+        }
+
         let mut cmd = Command::new(java);
         cmd.current_dir(working_dir)
             .arg(format!("-Xms{}", min_mem))
@@ -73,7 +82,7 @@ impl ProcessManager {
             .arg("-jar")
             .arg(executable_path)
             .arg("--assets")
-            .arg("Assets.zip")
+            .arg("Assets.zip") // TODO: make dynamic based on config?
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -164,6 +173,7 @@ impl ProcessManager {
         min_memory: Option<&str>,
         max_memory: Option<&str>,
         extra_args: Option<&str>,
+        config: Option<&serde_json::Value>,
     ) -> Result<(), AppError> {
         // Stop if running
         if self.is_running(server_id) {
@@ -179,6 +189,7 @@ impl ProcessManager {
             min_memory,
             max_memory,
             extra_args,
+            config,
         )
         .await
     }
@@ -197,6 +208,32 @@ impl ProcessManager {
 
         Ok(())
     }
+
+    fn generate_server_properties(&self, working_dir: &str, config: &serde_json::Value) -> std::io::Result<()> {
+        let content = format!(
+            "server.bind={}\nserver.port={}\nserver.auth={}\nserver.allow-op={}\n",
+            config["bind_address"].as_str().unwrap_or("0.0.0.0"),
+            config["port"].as_i64().unwrap_or(5520),
+            config["auth_mode"].as_str().unwrap_or("authenticated"),
+            config["allow_op"].as_bool().unwrap_or(false)
+        );
+        let path = std::path::Path::new(working_dir).join("server.properties");
+        fs::write(path, content)
+    }
+
+    fn generate_world_config(&self, working_dir: &str, config: &serde_json::Value) -> std::io::Result<()> {
+        let world_config = serde_json::json!({
+            "seed": config["seed"],
+            "gameplay": {
+                "pvp": config.get("is_pvp_enabled").and_then(|v| v.as_bool()).unwrap_or(true),
+                "fallDamage": config.get("is_fall_damage_enabled").and_then(|v| v.as_bool()).unwrap_or(true)
+            },
+            "viewDistance": config.get("view_distance").and_then(|v| v.as_i64()).unwrap_or(12)
+        });
+        
+        let path = std::path::Path::new(working_dir).join("world-config.json");
+        fs::write(path, serde_json::to_string_pretty(&world_config)?)
+    }
 }
 
 impl Default for ProcessManager {
@@ -204,3 +241,4 @@ impl Default for ProcessManager {
         Self::new()
     }
 }
+

@@ -9,19 +9,20 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 0.75rem 1rem;
-    background-color: var(--color-bg-tertiary);
+    height: 42px;
+    padding: 0 1rem;
+    background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-md); // ou 8px pour matcher input si radius-md != 8px
     color: var(--color-text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
-    font-size: 0.95rem;
+    font-size: 0.875rem; // Match input size
 
     &:hover {
         border-color: var(--color-accent);
-        background-color: var(--color-bg-elevated);
+        background-color: var(--color-bg-secondary); // Keep secondary on hover
     }
 
     &.custom-select__trigger--open {

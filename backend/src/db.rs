@@ -52,6 +52,7 @@ pub async fn run_migrations(pool: &DbPool) -> std::io::Result<()> {
             min_memory TEXT,
             max_memory TEXT,
             extra_args TEXT,
+            config TEXT,
             auto_start INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
@@ -134,6 +135,21 @@ pub async fn run_migrations(pool: &DbPool) -> std::io::Result<()> {
 
     if !column_names.contains(&"allocated_servers") {
         sqlx::query("ALTER TABLE users ADD COLUMN allocated_servers TEXT")
+            .execute(pool)
+            .await
+            .ok();
+    }
+
+    // Check servers table for config column
+    let server_columns: Vec<(i64, String, String, i64, Option<String>, i64)> = sqlx::query_as("PRAGMA table_info(servers)")
+        .fetch_all(pool)
+        .await
+        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+
+    let server_column_names: Vec<&str> = server_columns.iter().map(|c| c.1.as_str()).collect();
+
+    if !server_column_names.contains(&"config") {
+        sqlx::query("ALTER TABLE servers ADD COLUMN config TEXT")
             .execute(pool)
             .await
             .ok();

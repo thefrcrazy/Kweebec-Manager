@@ -3,6 +3,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
+use tokio::fs;
 
 use crate::db::DbPool;
 use crate::error::AppError;
@@ -18,6 +19,7 @@ pub struct CreateServerRequest {
     pub min_memory: Option<String>,
     pub max_memory: Option<String>,
     pub extra_args: Option<String>,
+    pub config: Option<serde_json::Value>,
     pub auto_start: Option<bool>,
 }
 
@@ -33,6 +35,7 @@ pub struct ServerResponse {
     pub min_memory: Option<String>,
     pub max_memory: Option<String>,
     pub extra_args: Option<String>,
+    pub config: Option<serde_json::Value>,
     pub auto_start: bool,
     pub created_at: String,
     pub updated_at: String,
@@ -58,7 +61,7 @@ async fn list_servers(
     pm: web::Data<ProcessManager>,
 ) -> Result<HttpResponse, AppError> {
     let servers: Vec<ServerRow> = sqlx::query_as(
-        "SELECT id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, auto_start, created_at, updated_at FROM servers"
+        "SELECT id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, config, auto_start, created_at, updated_at FROM servers"
     )
     .fetch_all(pool.get_ref())
     .await?;
@@ -82,6 +85,7 @@ async fn list_servers(
                 min_memory: s.min_memory,
                 max_memory: s.max_memory,
                 extra_args: s.extra_args,
+                config: s.config.and_then(|c| serde_json::from_str(&c).ok()),
                 auto_start: s.auto_start != 0,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
@@ -100,8 +104,14 @@ async fn create_server(
     let now = Utc::now().to_rfc3339();
     let auto_start = body.auto_start.unwrap_or(false) as i32;
 
+    let config_str = body.config.as_ref().map(|c| c.to_string());
+
+    if let Err(e) = fs::create_dir_all(&body.working_dir).await {
+        return Err(AppError::Internal(format!("Failed to create server directory: {}", e)));
+    }
+
     sqlx::query(
-        "INSERT INTO servers (id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, auto_start, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO servers (id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, config, auto_start, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(&id)
     .bind(&body.name)
@@ -112,6 +122,7 @@ async fn create_server(
     .bind(&body.min_memory)
     .bind(&body.max_memory)
     .bind(&body.extra_args)
+    .bind(config_str)
     .bind(auto_start)
     .bind(&now)
     .bind(&now)
@@ -129,7 +140,7 @@ async fn get_server(
     let id = path.into_inner();
 
     let server: ServerRow = sqlx::query_as(
-        "SELECT id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, auto_start, created_at, updated_at FROM servers WHERE id = ?"
+        "SELECT id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, config, auto_start, created_at, updated_at FROM servers WHERE id = ?"
     )
     .bind(&id)
     .fetch_optional(pool.get_ref())
@@ -153,6 +164,7 @@ async fn get_server(
         min_memory: server.min_memory,
         max_memory: server.max_memory,
         extra_args: server.extra_args,
+        config: server.config.and_then(|c| serde_json::from_str(&c).ok()),
         auto_start: server.auto_start != 0,
         created_at: server.created_at,
         updated_at: server.updated_at,
@@ -168,8 +180,10 @@ async fn update_server(
     let now = Utc::now().to_rfc3339();
     let auto_start = body.auto_start.unwrap_or(false) as i32;
 
+    let config_str = body.config.as_ref().map(|c| c.to_string());
+
     let result = sqlx::query(
-        "UPDATE servers SET name = ?, game_type = ?, executable_path = ?, working_dir = ?, java_path = ?, min_memory = ?, max_memory = ?, extra_args = ?, auto_start = ?, updated_at = ? WHERE id = ?",
+        "UPDATE servers SET name = ?, game_type = ?, executable_path = ?, working_dir = ?, java_path = ?, min_memory = ?, max_memory = ?, extra_args = ?, config = ?, auto_start = ?, updated_at = ? WHERE id = ?",
     )
     .bind(&body.name)
     .bind(&body.game_type)
@@ -179,6 +193,7 @@ async fn update_server(
     .bind(&body.min_memory)
     .bind(&body.max_memory)
     .bind(&body.extra_args)
+    .bind(config_str)
     .bind(auto_start)
     .bind(&now)
     .bind(&id)
@@ -224,7 +239,7 @@ async fn start_server(
     let id = path.into_inner();
 
     let server: ServerRow = sqlx::query_as(
-        "SELECT id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, auto_start, created_at, updated_at FROM servers WHERE id = ?"
+        "SELECT id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, config, auto_start, created_at, updated_at FROM servers WHERE id = ?"
     )
     .bind(&id)
     .fetch_optional(pool.get_ref())
@@ -239,6 +254,7 @@ async fn start_server(
         server.min_memory.as_deref(),
         server.max_memory.as_deref(),
         server.extra_args.as_deref(),
+        server.config.as_ref().and_then(|c| serde_json::from_str(c).ok()).as_ref(),
     )
     .await?;
 
@@ -298,7 +314,7 @@ async fn restart_server(
     let id = path.into_inner();
 
     let server: ServerRow = sqlx::query_as(
-        "SELECT id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, auto_start, created_at, updated_at FROM servers WHERE id = ?"
+        "SELECT id, name, game_type, executable_path, working_dir, java_path, min_memory, max_memory, extra_args, config, auto_start, created_at, updated_at FROM servers WHERE id = ?"
     )
     .bind(&id)
     .fetch_optional(pool.get_ref())
@@ -313,6 +329,7 @@ async fn restart_server(
         server.min_memory.as_deref(),
         server.max_memory.as_deref(),
         server.extra_args.as_deref(),
+        server.config.as_ref().and_then(|c| serde_json::from_str(c).ok()).as_ref(),
     )
     .await?;
 
@@ -345,6 +362,7 @@ struct ServerRow {
     min_memory: Option<String>,
     max_memory: Option<String>,
     extra_args: Option<String>,
+    config: Option<String>,
     auto_start: i32,
     created_at: String,
     updated_at: String,

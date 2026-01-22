@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Play, Square, RotateCw, Terminal, Cpu, HardDrive } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Play, Square, RotateCw, Terminal, Cpu, HardDrive, Settings } from 'lucide-react';
 
 interface Server {
     id: string;
@@ -10,9 +10,12 @@ interface Server {
 }
 
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePageTitle } from '../contexts/PageTitleContext';
 
 export default function ServerDetail() {
     const { t } = useLanguage();
+    const { setPageTitle } = usePageTitle();
+    const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
 
     const [server, setServer] = useState<Server | null>(null);
@@ -39,10 +42,17 @@ export default function ServerDetail() {
         const response = await fetch(`/api/v1/servers/${id}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
-        if (response.ok) {
-            setServer(await response.json());
+        setServer(await response.json());
+    }
+
+
+    useEffect(() => {
+        if (server) {
+            setPageTitle(server.name, 'Hytale Server', { to: '/servers' });
+        } else {
+            setPageTitle(t('common.loading'), '', { to: '/servers' });
         }
-    };
+    }, [server, setPageTitle, t]);
 
     const connectWebSocket = () => {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -88,21 +98,7 @@ export default function ServerDetail() {
 
     return (
         <div>
-            <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Link to="/servers" className="btn btn--ghost btn--icon">
-                        <ArrowLeft size={20} />
-                    </Link>
-                    <div>
-                        <h1 className="page-header__title">{server.name}</h1>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span className={`status-badge status-badge--${server.status}`}>
-                                {server.status === 'running' ? t('server_detail.start') : t('server_detail.stop')}
-                            </span>
-                            <p className="page-header__subtitle">Hytale Server</p>
-                        </div>
-                    </div>
-                </div>
+            <div className="page-header" style={{ justifyContent: 'flex-end' }}>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     {server.status === 'stopped' ? (
                         <button className="btn btn--success" onClick={() => handleAction('start')}>
@@ -118,6 +114,14 @@ export default function ServerDetail() {
                             </button>
                         </>
                     )}
+
+                    <button
+                        className="btn btn--secondary"
+                        onClick={() => navigate(`/servers/${id}/settings`)}
+                        title="Configuration du serveur"
+                    >
+                        <Settings size={18} />
+                    </button>
                 </div>
             </div>
 
@@ -160,7 +164,7 @@ export default function ServerDetail() {
                             type="text"
                             value={command}
                             onChange={(e) => setCommand(e.target.value)}
-                            placeholder={t('common.search')} // Wait, maybe create a console_placeholder? Let's use generic for now or "..."
+                            placeholder={t('common.search')}
                             disabled={!isConnected || server.status !== 'running'}
                         />
                     </form>
@@ -189,6 +193,6 @@ export default function ServerDetail() {
                 </div>
 
             </div>
-        </div>
+        </div >
     );
 }

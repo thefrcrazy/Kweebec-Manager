@@ -3,6 +3,7 @@ import { Save, Palette, Check, Key, User, Link2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePageTitle } from '../contexts/PageTitleContext';
 import { Globe } from 'lucide-react';
 
 const PRESET_COLORS = [
@@ -31,6 +32,11 @@ export default function UserSettings() {
     useEffect(() => {
         setTimeout(() => setIsLoading(false), 300);
     }, []);
+
+    const { setPageTitle } = usePageTitle();
+    useEffect(() => {
+        setPageTitle(t('user_settings.title'), t('user_settings.subtitle'));
+    }, [setPageTitle, t]);
 
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -112,12 +118,6 @@ export default function UserSettings() {
 
     return (
         <div>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-header__title">{t('user_settings.title')}</h1>
-                    <p className="page-header__subtitle">{t('user_settings.subtitle')}</p>
-                </div>
-            </div>
 
             <div className="settings-grid">
                 {/* Profile Info */}

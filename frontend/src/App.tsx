@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { PageTitleProvider } from './contexts/PageTitleContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -11,8 +12,10 @@ import ServerDetail from './pages/ServerDetail';
 import Backups from './pages/Backups';
 import PanelSettings from './pages/PanelSettings';
 import UserSettings from './pages/UserSettings';
-import Users from './pages/Users';
 import Setup from './pages/Setup';
+import CreateServer from './pages/CreateServer';
+import EditServer from './pages/EditServer';
+import EditUser from './pages/EditUser';
 
 function SetupCheck({ children }: { children: React.ReactNode }) {
     const [isChecking, setIsChecking] = useState(true);
@@ -61,24 +64,28 @@ function App() {
         <ThemeProvider>
             <LanguageProvider>
                 <AuthProvider>
-                    <SetupCheck>
-                        <Routes>
-                            <Route path="/setup" element={<Setup />} />
-                            <Route path="/login" element={<Login />} />
-                            <Route element={<Layout />}>
-                                <Route path="/dashboard" element={<Dashboard />} />
-                                <Route path="/servers" element={<Servers />} />
-                                <Route path="/servers/:id" element={<ServerDetail />} />
-                                <Route path="/backups" element={<Backups />} />
-                                <Route path="/users" element={<Users />} />
-                                <Route path="/panel-settings" element={<PanelSettings />} />
-                                <Route path="/user-settings" element={<UserSettings />} />
-                                {/* Redirect old route */}
-                                <Route path="/settings" element={<Navigate to="/panel-settings" replace />} />
-                            </Route>
-                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                        </Routes>
-                    </SetupCheck>
+                    <PageTitleProvider>
+                        <SetupCheck>
+                            <Routes>
+                                <Route path="/setup" element={<Setup />} />
+                                <Route path="/login" element={<Login />} />
+                                <Route element={<Layout />}>
+                                    <Route path="/dashboard" element={<Dashboard />} />
+                                    <Route path="/servers" element={<Servers />} />
+                                    <Route path="/servers/create" element={<CreateServer />} />
+                                    <Route path="/servers/:id" element={<ServerDetail />} />
+                                    <Route path="/servers/:id/settings" element={<EditServer />} />
+                                    <Route path="/backups" element={<Backups />} />
+                                    <Route path="/panel-settings" element={<PanelSettings />} />
+                                    <Route path="/panel-settings/users/:id" element={<EditUser />} />
+                                    <Route path="/user-settings" element={<UserSettings />} />
+                                    {/* Redirect old route */}
+                                    <Route path="/settings" element={<Navigate to="/panel-settings" replace />} />
+                                </Route>
+                                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                            </Routes>
+                        </SetupCheck>
+                    </PageTitleProvider>
                 </AuthProvider>
             </LanguageProvider>
         </ThemeProvider>

@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Save, FolderOpen, AlertTriangle, Palette, Check, Image, FolderSearch, Upload } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import {
+    Save, FolderOpen, AlertTriangle, Palette, Check, Image, FolderSearch, Upload,
+    Users, Shield, Plus, Edit2, Trash2, ShieldOff, User as UserIcon
+} from 'lucide-react';
 import DirectoryPicker from '../components/DirectoryPicker';
+import Table from '../components/Table';
+import { useLanguage } from '../contexts/LanguageContext';
+import { usePageTitle } from '../contexts/PageTitleContext';
 
 interface PanelInfo {
     version: string;
@@ -15,6 +22,27 @@ interface LoginCustomization {
     background_url: string;
 }
 
+interface User {
+    id: string;
+    username: string;
+    role: 'admin' | 'user';
+    is_active: boolean;
+    language: string;
+    accent_color: string;
+    created_at: string;
+    updated_at: string;
+    last_login: string | null;
+    last_ip: string | null;
+    allocated_servers: string[];
+}
+
+interface Role {
+    id: string;
+    name: string;
+    permissions: string[];
+    color: string;
+}
+
 const PRESET_COLORS = [
     '#3A82F6', // Default Blue
     '#FF591E', // Mistral Orange
@@ -24,10 +52,29 @@ const PRESET_COLORS = [
     '#F59E0B', // Amber
 ];
 
-import { useLanguage } from '../contexts/LanguageContext';
+type ActiveTab = 'general' | 'users' | 'roles';
 
 export default function PanelSettings() {
     const { t } = useLanguage();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab') as ActiveTab | null;
+    const [activeTab, setActiveTab] = useState<ActiveTab>(tabParam || 'general');
+
+    // Sync tab with URL
+    useEffect(() => {
+        const urlTab = searchParams.get('tab') as ActiveTab | null;
+        if (urlTab && ['general', 'users', 'roles'].includes(urlTab)) {
+            setActiveTab(urlTab);
+        }
+    }, [searchParams]);
+
+    // Update URL when tab changes
+    const handleTabChange = (tab: ActiveTab) => {
+        setActiveTab(tab);
+        setSearchParams({ tab });
+    };
+
+    // General settings state
     const [webhookUrl, setWebhookUrl] = useState('');
     const [panelInfo, setPanelInfo] = useState<PanelInfo>({
         version: '0.1.0',
@@ -52,9 +99,25 @@ export default function PanelSettings() {
     const [webhookTestResult, setWebhookTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+    // Users state
+    const [users, setUsers] = useState<User[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Roles state (placeholder for future)
+    const [roles] = useState<Role[]>([
+        { id: '1', name: 'Administrateur', permissions: ['all'], color: '#FF591E' },
+        { id: '2', name: 'Utilisateur', permissions: ['view', 'manage_own_servers'], color: '#3A82F6' },
+    ]);
+
     useEffect(() => {
         fetchSettings();
+        fetchUsers();
     }, []);
+
+    const { setPageTitle } = usePageTitle();
+    useEffect(() => {
+        setPageTitle(t('panel_settings.title'), t('panel_settings.subtitle'));
+    }, [setPageTitle, t]);
 
     const handleTestWebhook = async () => {
         setIsTestingWebhook(true);
@@ -87,13 +150,11 @@ export default function PanelSettings() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file type
         if (!file.type.startsWith('image/')) {
             alert('Veuillez sélectionner une image valide');
             return;
         }
 
-        // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             alert('L\'image ne doit pas dépasser 5 Mo');
             return;
@@ -155,6 +216,19 @@ export default function PanelSettings() {
         }
     };
 
+    const fetchUsers = async () => {
+        try {
+            const response = await fetch('/api/v1/users', {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            });
+            if (response.ok) {
+                setUsers(await response.json());
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+        }
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
         setSaveSuccess(false);
@@ -188,6 +262,44 @@ export default function PanelSettings() {
         }
     };
 
+    const handleDeleteUser = async (user: User) => {
+        if (!confirm(t('common.delete') + ` "${user.username}" ?`)) return;
+        try {
+            const response = await fetch(`/api/v1/users/${user.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            });
+            if (response.ok) fetchUsers();
+        } catch (error) {
+            console.error('Erreur:', error);
+        }
+    };
+
+    const handleToggleUserActive = async (user: User) => {
+        try {
+            await fetch(`/api/v1/users/${user.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+                body: JSON.stringify({ is_active: !user.is_active }),
+            });
+            fetchUsers();
+        } catch (error) {
+            console.error('Erreur:', error);
+        }
+    };
+
+    const formatDate = (dateStr: string | null) => {
+        if (!dateStr) return 'Jamais';
+        return new Date(dateStr).toLocaleDateString('fr-FR', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    };
+
+    const filteredUsers = users.filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase()));
+
     if (isLoading) {
         return (
             <div className="loading-screen">
@@ -197,241 +309,422 @@ export default function PanelSettings() {
         );
     }
 
+    const tabs = [
+        { id: 'general' as ActiveTab, label: 'Général', icon: FolderOpen },
+        { id: 'users' as ActiveTab, label: 'Utilisateurs', icon: Users },
+        { id: 'roles' as ActiveTab, label: 'Rôles', icon: Shield },
+    ];
+
     return (
         <div>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-header__title">{t('panel_settings.title')}</h1>
-                    <p className="page-header__subtitle">{t('panel_settings.subtitle')}</p>
-                </div>
+
+            {/* Tabs */}
+            <div style={{
+                display: 'flex',
+                gap: '0.25rem',
+                marginBottom: '1.5rem',
+                borderBottom: '1px solid var(--color-border)',
+                paddingBottom: '0'
+            }}>
+                {tabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => handleTabChange(tab.id)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.75rem 1.25rem',
+                            background: 'transparent',
+                            border: 'none',
+                            borderBottom: activeTab === tab.id ? '2px solid var(--color-accent)' : '2px solid transparent',
+                            color: activeTab === tab.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                            fontWeight: activeTab === tab.id ? 600 : 400,
+                            cursor: 'pointer',
+                            marginBottom: '-1px',
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        <tab.icon size={18} />
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
-            <div className="settings-grid">
-                {/* Discord Notifications */}
-                <div className="card">
-                    <h3 className="settings-section__title">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-                        </svg>
-                        {t('panel_settings.discord_title')}
-                    </h3>
+            {/* General Tab */}
+            {activeTab === 'general' && (
+                <div className="settings-grid">
+                    {/* Discord Notifications */}
+                    <div className="card">
+                        <h3 className="settings-section__title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+                            </svg>
+                            {t('panel_settings.discord_title')}
+                        </h3>
 
-                    <p className="form-hint" style={{ marginBottom: '1rem' }}>
-                        Configuration globale des notifications Discord pour tous les serveurs.
-                    </p>
+                        <p className="form-hint" style={{ marginBottom: '1rem' }}>
+                            Configuration globale des notifications Discord pour tous les serveurs.
+                        </p>
 
-                    <div className="form-group">
-                        <label className="form-label">{t('panel_settings.webhook_url')}</label>
+                        <div className="form-group">
+                            <label className="form-label">{t('panel_settings.webhook_url')}</label>
+                            <input
+                                type="text"
+                                placeholder="https://discord.com/api/webhooks/..."
+                                className="form-input"
+                                value={webhookUrl}
+                                onChange={(e) => setWebhookUrl(e.target.value)}
+                            />
+                            <p className="form-hint">
+                                Recevez des notifications pour : démarrage/arrêt de serveurs, création de backups, alertes système.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="btn btn--secondary"
+                            onClick={handleTestWebhook}
+                            disabled={!webhookUrl || isTestingWebhook}
+                        >
+                            {isTestingWebhook ? t('panel_settings.test_success') : t('panel_settings.test_webhook')}
+                        </button>
+                        {webhookTestResult && (
+                            <p className={`form-hint ${webhookTestResult.success ? 'text-success' : 'text-danger'}`} style={{ marginTop: '0.5rem' }}>
+                                {webhookTestResult.message}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Paths */}
+                    <div className="card">
+                        <h3 className="settings-section__title">
+                            <FolderOpen size={20} />
+                            {t('panel_settings.general_title')}
+                        </h3>
+
+                        {panelInfo.is_docker && (
+                            <div className="alert alert--info" style={{ marginBottom: '1rem' }}>
+                                <AlertTriangle size={16} />
+                                <span>Les chemins sont gérés par Docker et ne peuvent pas être modifiés.</span>
+                            </div>
+                        )}
+
+                        <div className="info-list">
+                            <div className="info-list__item info-list__item--editable">
+                                <span className="info-list__label">{t('panel_settings.servers_path')}</span>
+                                {panelInfo.is_docker ? (
+                                    <span className="info-list__value info-list__value--mono">{panelInfo.servers_dir}</span>
+                                ) : (
+                                    <div className="info-list__input-group">
+                                        <input
+                                            type="text"
+                                            className="form-input form-input--inline"
+                                            value={serversDir}
+                                            onChange={(e) => setServersDir(e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn btn--secondary btn--sm"
+                                            onClick={() => setShowServersDirPicker(true)}
+                                            title="Parcourir"
+                                        >
+                                            <FolderSearch size={16} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="info-list__item info-list__item--editable">
+                                <span className="info-list__label">{t('panel_settings.backups_path')}</span>
+                                {panelInfo.is_docker ? (
+                                    <span className="info-list__value info-list__value--mono">{panelInfo.backups_dir}</span>
+                                ) : (
+                                    <div className="info-list__input-group">
+                                        <input
+                                            type="text"
+                                            className="form-input form-input--inline"
+                                            value={backupsDir}
+                                            onChange={(e) => setBackupsDir(e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn btn--secondary btn--sm"
+                                            onClick={() => setShowBackupsDirPicker(true)}
+                                            title="Parcourir"
+                                        >
+                                            <FolderSearch size={16} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Appearance */}
+                    <div className="card">
+                        <h3 className="settings-section__title">
+                            <Palette size={20} />
+                            {t('panel_settings.appearance_title')}
+                        </h3>
+
+                        <p className="form-hint" style={{ marginBottom: '1rem' }}>
+                            Ces paramètres s'appliquent à tous les nouveaux utilisateurs par défaut.
+                        </p>
+
+                        <div className="form-group">
+                            <label className="form-label">Couleur par défaut</label>
+                            <div className="color-picker">
+                                {PRESET_COLORS.map((color) => (
+                                    <button
+                                        key={color}
+                                        onClick={() => setLoginCustomization(prev => ({ ...prev, default_color: color }))}
+                                        className={`color-picker__swatch ${loginCustomization.default_color.toLowerCase() === color.toLowerCase() ? 'color-picker__swatch--active' : ''}`}
+                                        style={{
+                                            background: color,
+                                            boxShadow: loginCustomization.default_color.toLowerCase() === color.toLowerCase()
+                                                ? `0 0 15px ${color}66`
+                                                : 'none'
+                                        }}
+                                    >
+                                        {loginCustomization.default_color.toLowerCase() === color.toLowerCase() && (
+                                            <Check size={20} color="white" strokeWidth={3} />
+                                        )}
+                                    </button>
+                                ))}
+
+                                <div className="color-picker__custom">
+                                    <input
+                                        type="color"
+                                        value={loginCustomization.default_color}
+                                        onChange={(e) => setLoginCustomization(prev => ({ ...prev, default_color: e.target.value }))}
+                                        title="Couleur personnalisée"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">
+                                <Image size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                                Image de fond
+                            </label>
+                            <div className="info-list__input-group">
+                                <input
+                                    type="url"
+                                    placeholder="https://example.com/background.jpg"
+                                    className="form-input form-input--inline"
+                                    value={loginCustomization.background_url}
+                                    onChange={(e) => setLoginCustomization(prev => ({ ...prev, background_url: e.target.value }))}
+                                />
+                                <div className="file-upload-wrapper">
+                                    <input
+                                        type="file"
+                                        id="bg-upload"
+                                        accept="image/*"
+                                        className="file-input"
+                                        onChange={handleImageUpload}
+                                        style={{ display: 'none' }}
+                                    />
+                                    <label
+                                        htmlFor="bg-upload"
+                                        className={`btn btn--secondary btn--sm ${isUploadingImage ? 'btn--loading' : ''}`}
+                                        title="Uploader une image"
+                                    >
+                                        {isUploadingImage ? (
+                                            <div className="spinner-sm"></div>
+                                        ) : (
+                                            <Upload size={16} />
+                                        )}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        {loginCustomization.background_url && (
+                            <div className="login-preview">
+                                <label className="form-label">Aperçu</label>
+                                <div
+                                    className="login-preview__image"
+                                    style={{
+                                        backgroundImage: `url(${loginCustomization.background_url})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        height: '120px',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--color-border)'
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Save Button */}
+                    {saveSuccess && (
+                        <div className={`alert ${saveMessage.includes('Redémarrez') ? 'alert--warning' : 'alert--success'}`}>
+                            {saveMessage}
+                        </div>
+                    )}
+
+                    <button className="btn btn--primary btn--lg" onClick={handleSave} disabled={isSaving}>
+                        <Save size={18} />
+                        {isSaving ? t('common.save') : t('common.save')}
+                    </button>
+                </div>
+            )}
+
+            {/* Users Tab */}
+            {activeTab === 'users' && (
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <input
                             type="text"
-                            placeholder="https://discord.com/api/webhooks/..."
+                            placeholder="Rechercher un utilisateur..."
                             className="form-input"
-                            value={webhookUrl}
-                            onChange={(e) => setWebhookUrl(e.target.value)}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ maxWidth: '300px' }}
                         />
-                        <p className="form-hint">
-                            Recevez des notifications pour : démarrage/arrêt de serveurs, création de backups, alertes système.
-                        </p>
+                        <Link to="/panel-settings/users/new" className="btn btn--primary">
+                            <Plus size={18} />
+                            Créer un utilisateur
+                        </Link>
                     </div>
 
-                    <button
-                        type="button"
-                        className="btn btn--secondary"
-                        onClick={handleTestWebhook}
-                        disabled={!webhookUrl || isTestingWebhook}
-                    >
-                        {isTestingWebhook ? t('panel_settings.test_success') : t('panel_settings.test_webhook')}
-                    </button>
-                    {webhookTestResult && (
-                        <p className={`form-hint ${webhookTestResult.success ? 'text-success' : 'text-danger'}`} style={{ marginTop: '0.5rem' }}>
-                            {webhookTestResult.message}
-                        </p>
-                    )}
-                </div>
-
-                {/* Chemin des répertoires */}
-                <div className="card">
-                    <h3 className="settings-section__title">
-                        <FolderOpen size={20} />
-                        {t('panel_settings.general_title')}
-                    </h3>
-
-                    {panelInfo.is_docker && (
-                        <div className="alert alert--info" style={{ marginBottom: '1rem' }}>
-                            <AlertTriangle size={16} />
-                            <span>Les chemins sont gérés par Docker et ne peuvent pas être modifiés.</span>
-                        </div>
-                    )}
-
-                    <div className="info-list">
-                        <div className="info-list__item info-list__item--editable">
-                            <span className="info-list__label">{t('panel_settings.servers_path')}</span>
-                            {panelInfo.is_docker ? (
-                                <span className="info-list__value info-list__value--mono">{panelInfo.servers_dir}</span>
-                            ) : (
-                                <div className="info-list__input-group">
-                                    <input
-                                        type="text"
-                                        className="form-input form-input--inline"
-                                        value={serversDir}
-                                        onChange={(e) => setServersDir(e.target.value)}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="btn btn--secondary btn--sm"
-                                        onClick={() => setShowServersDirPicker(true)}
-                                        title="Parcourir"
-                                    >
-                                        <FolderSearch size={16} />
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="info-list__item info-list__item--editable">
-                            <span className="info-list__label">{t('panel_settings.backups_path')}</span>
-                            {panelInfo.is_docker ? (
-                                <span className="info-list__value info-list__value--mono">{panelInfo.backups_dir}</span>
-                            ) : (
-                                <div className="info-list__input-group">
-                                    <input
-                                        type="text"
-                                        className="form-input form-input--inline"
-                                        value={backupsDir}
-                                        onChange={(e) => setBackupsDir(e.target.value)}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="btn btn--secondary btn--sm"
-                                        onClick={() => setShowBackupsDirPicker(true)}
-                                        title="Parcourir"
-                                    >
-                                        <FolderSearch size={16} />
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Personnalisation de la page de connexion */}
-                <div className="card">
-                    <h3 className="settings-section__title">
-                        <Palette size={20} />
-                        {t('panel_settings.appearance_title')}
-                    </h3>
-
-                    <p className="form-hint" style={{ marginBottom: '1rem' }}>
-                        Ces paramètres s'appliquent à tous les nouveaux utilisateurs par défaut.
-                    </p>
-
-                    <div className="form-group">
-                        <label className="form-label">Couleur par défaut</label>
-                        <div className="color-picker">
-                            {PRESET_COLORS.map((color) => (
-                                <button
-                                    key={color}
-                                    onClick={() => setLoginCustomization(prev => ({ ...prev, default_color: color }))}
-                                    className={`color-picker__swatch ${loginCustomization.default_color.toLowerCase() === color.toLowerCase() ? 'color-picker__swatch--active' : ''}`}
-                                    style={{
-                                        background: color,
-                                        boxShadow: loginCustomization.default_color.toLowerCase() === color.toLowerCase()
-                                            ? `0 0 15px ${color}66`
-                                            : 'none'
-                                    }}
-                                >
-                                    {loginCustomization.default_color.toLowerCase() === color.toLowerCase() && (
-                                        <Check size={20} color="white" strokeWidth={3} />
-                                    )}
-                                </button>
+                    <Table>
+                        <thead>
+                            <tr>
+                                <th>{t('users.username')}</th>
+                                <th>{t('users.role')}</th>
+                                <th>{t('users.status')}</th>
+                                <th>{t('users.last_login')}</th>
+                                <th style={{ width: '120px' }}>{t('common.actions')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredUsers.map((user) => (
+                                <tr key={user.id} className={!user.is_active ? 'table__row--disabled' : ''}>
+                                    <td>
+                                        <div className="user-cell">
+                                            <div className="user-cell__avatar" style={{ backgroundColor: user.accent_color }}>
+                                                {user.username.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="user-cell__info">
+                                                <span className="user-cell__name">{user.username}</span>
+                                                <span className="user-cell__created">Créé le {formatDate(user.created_at)}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span className={`badge badge--${user.role === 'admin' ? 'primary' : 'secondary'}`}>
+                                            {user.role === 'admin' ? <><Shield size={12} /> Admin</> : <><UserIcon size={12} /> User</>}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className={`badge badge--${user.is_active ? 'success' : 'danger'}`}>
+                                            {user.is_active ? 'Actif' : 'Désactivé'}
+                                        </span>
+                                    </td>
+                                    <td className="text-muted">{formatDate(user.last_login)}</td>
+                                    <td>
+                                        <div className="table__actions">
+                                            <button
+                                                className="btn btn--icon btn--ghost"
+                                                onClick={() => handleToggleUserActive(user)}
+                                                title={user.is_active ? 'Désactiver' : 'Activer'}
+                                            >
+                                                {user.is_active ? <ShieldOff size={16} /> : <Shield size={16} />}
+                                            </button>
+                                            <Link
+                                                to={`/panel-settings/users/${user.id}`}
+                                                className="btn btn--icon btn--ghost"
+                                                title="Modifier"
+                                            >
+                                                <Edit2 size={16} />
+                                            </Link>
+                                            <button
+                                                className="btn btn--icon btn--ghost btn--danger"
+                                                onClick={() => handleDeleteUser(user)}
+                                                title="Supprimer"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                             ))}
-
-                            <div className="color-picker__custom">
-                                <input
-                                    type="color"
-                                    value={loginCustomization.default_color}
-                                    onChange={(e) => setLoginCustomization(prev => ({ ...prev, default_color: e.target.value }))}
-                                    title="Couleur personnalisée"
-                                />
-                            </div>
-                        </div>
-                        <p className="form-hint">
-                            Cette couleur sera utilisée comme couleur d'accentuation par défaut pour les nouveaux utilisateurs.
-                        </p>
-                    </div>
-
-
-
-                    <div className="form-group">
-                        <label className="form-label">
-                            <Image size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                            Image de fond
-                        </label>
-                        <div className="info-list__input-group">
-                            <input
-                                type="url"
-                                placeholder="https://example.com/background.jpg"
-                                className="form-input form-input--inline"
-                                value={loginCustomization.background_url}
-                                onChange={(e) => setLoginCustomization(prev => ({ ...prev, background_url: e.target.value }))}
-                            />
-                            <div className="file-upload-wrapper">
-                                <input
-                                    type="file"
-                                    id="bg-upload"
-                                    accept="image/*"
-                                    className="file-input"
-                                    onChange={handleImageUpload}
-                                    style={{ display: 'none' }}
-                                />
-                                <label
-                                    htmlFor="bg-upload"
-                                    className={`btn btn--secondary btn--sm ${isUploadingImage ? 'btn--loading' : ''}`}
-                                    title="Uploader une image"
-                                >
-                                    {isUploadingImage ? (
-                                        <div className="spinner-sm"></div>
-                                    ) : (
-                                        <Upload size={16} />
-                                    )}
-                                </label>
-                            </div>
-                        </div>
-                        <p className="form-hint">
-                            URL d'une image à utiliser comme fond sur la page de connexion. Laissez vide pour le fond par défaut.
-                        </p>
-                    </div>
-
-                    {loginCustomization.background_url && (
-                        <div className="login-preview">
-                            <label className="form-label">Aperçu</label>
-                            <div
-                                className="login-preview__image"
-                                style={{
-                                    backgroundImage: `url(${loginCustomization.background_url})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    height: '120px',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--color-border)'
-                                }}
-                            />
-                        </div>
-                    )}
+                        </tbody>
+                    </Table>
                 </div>
+            )}
 
-                {/* Save Button */}
-                {saveSuccess && (
-                    <div className={`alert ${saveMessage.includes('Redémarrez') ? 'alert--warning' : 'alert--success'}`}>
-                        {saveMessage}
+            {/* Roles Tab */}
+            {activeTab === 'roles' && (
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <p className="text-muted">Gérez les rôles et permissions de vos utilisateurs</p>
+                        <button className="btn btn--primary">
+                            <Plus size={18} />
+                            Créer un rôle
+                        </button>
                     </div>
-                )}
 
-                <button className="btn btn--primary btn--lg" onClick={handleSave} disabled={isSaving}>
-                    <Save size={18} />
-                    {isSaving ? t('common.save') : t('common.save')}
-                </button>
-            </div>
+                    <Table>
+                        <thead>
+                            <tr>
+                                <th>Nom du rôle</th>
+                                <th>Permissions</th>
+                                <th>Utilisateurs</th>
+                                <th style={{ width: '120px' }}>{t('common.actions')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {roles.map((role) => (
+                                <tr key={role.id}>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{
+                                                width: '12px',
+                                                height: '12px',
+                                                borderRadius: '50%',
+                                                background: role.color
+                                            }} />
+                                            <span style={{ fontWeight: 600 }}>{role.name}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                                            {role.permissions.map(perm => (
+                                                <span key={perm} className="badge badge--secondary" style={{ fontSize: '0.7rem' }}>
+                                                    {perm}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {users.filter(u => u.role === (role.name.toLowerCase() === 'administrateur' ? 'admin' : 'user')).length}
+                                    </td>
+                                    <td>
+                                        <div className="table__actions">
+                                            <button className="btn btn--icon btn--ghost" title="Modifier">
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button className="btn btn--icon btn--ghost btn--danger" title="Supprimer" disabled>
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+
+                    <div className="alert alert--info" style={{ marginTop: '1rem' }}>
+                        <AlertTriangle size={16} />
+                        <span>La gestion avancée des rôles sera disponible dans une prochaine version.</span>
+                    </div>
+                </div>
+            )}
 
             {/* Directory Pickers */}
             <DirectoryPicker
@@ -449,6 +742,6 @@ export default function PanelSettings() {
                 initialPath={backupsDir || '/'}
                 title="Sélectionner le répertoire des backups"
             />
-        </div >
+        </div>
     );
 }
