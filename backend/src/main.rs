@@ -10,6 +10,7 @@ mod db;
 mod error;
 mod models;
 mod services;
+mod templates;
 
 use config::Settings;
 

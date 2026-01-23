@@ -149,18 +149,16 @@ export default function UserSettings() {
 
                     <div className="form-group">
                         <label className="form-label">{t('settings.select_language')}</label>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div className="language-selector">
                             <button
                                 className={`btn ${language === 'fr' ? 'btn--primary' : 'btn--secondary'}`}
                                 onClick={() => setLanguage('fr')}
-                                style={{ flex: 1 }}
                             >
                                 🇫🇷 Français
                             </button>
                             <button
                                 className={`btn ${language === 'en' ? 'btn--primary' : 'btn--secondary'}`}
                                 onClick={() => setLanguage('en')}
-                                style={{ flex: 1 }}
                             >
                                 🇺🇸 English
                             </button>
@@ -206,7 +204,7 @@ export default function UserSettings() {
                             </div>
                         </div>
                         {colorSaveSuccess && (
-                            <p className="form-hint" style={{ color: 'var(--color-success)', marginTop: '0.5rem' }}>
+                            <p className="form-hint text-success mt-2">
                                 {t('user_settings.color_saved')}
                             </p>
                         )}
@@ -215,8 +213,7 @@ export default function UserSettings() {
                     <button
                         onClick={handleSaveColor}
                         disabled={!hasColorChanged || isSavingColor}
-                        className="btn btn--primary"
-                        style={{ marginTop: '1rem' }}
+                        className="btn btn--primary mt-4"
                     >
                         <Save size={18} />
                         {isSavingColor ? t('user_settings.data_saving') : t('user_settings.save_color')}
@@ -232,7 +229,7 @@ export default function UserSettings() {
                         {t('user_settings.discord_link')}
                     </h3>
 
-                    <p className="form-hint" style={{ marginBottom: '1rem' }}>
+                    <p className="form-hint mb-4">
                         {t('user_settings.discord_desc')}
                     </p>
 
@@ -259,13 +256,13 @@ export default function UserSettings() {
 
                     <form onSubmit={handlePasswordChange}>
                         {passwordError && (
-                            <div className="alert alert--error" style={{ marginBottom: '1rem' }}>
+                            <div className="alert alert--error mb-4">
                                 {passwordError}
                             </div>
                         )}
 
                         {passwordSuccess && (
-                            <div className="alert alert--success" style={{ marginBottom: '1rem' }}>
+                            <div className="alert alert--success mb-4">
                                 {t('user_settings.password_success')}
                             </div>
                         )}

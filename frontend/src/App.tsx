@@ -14,7 +14,6 @@ import PanelSettings from './pages/PanelSettings';
 import UserSettings from './pages/UserSettings';
 import Setup from './pages/Setup';
 import CreateServer from './pages/CreateServer';
-import EditServer from './pages/EditServer';
 import EditUser from './pages/EditUser';
 
 function SetupCheck({ children }: { children: React.ReactNode }) {
@@ -74,7 +73,6 @@ function App() {
                                     <Route path="/servers" element={<Servers />} />
                                     <Route path="/servers/create" element={<CreateServer />} />
                                     <Route path="/servers/:id" element={<ServerDetail />} />
-                                    <Route path="/servers/:id/settings" element={<EditServer />} />
                                     <Route path="/backups" element={<Backups />} />
                                     <Route path="/panel-settings" element={<PanelSettings />} />
                                     <Route path="/panel-settings/users/:id" element={<EditUser />} />

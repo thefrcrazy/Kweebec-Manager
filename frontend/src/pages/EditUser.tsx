@@ -189,23 +189,16 @@ export default function EditUser() {
         <div className="edit-user-page">
             {/* Form */}
             <form onSubmit={handleSubmit}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', maxWidth: '900px' }}>
+                <div className="content-container">
 
                     {/* Left Column - Account Info */}
-                    <div className="card" style={{ padding: '1.5rem' }}>
-                        <h3 style={{
-                            fontSize: '1rem',
-                            fontWeight: 600,
-                            marginBottom: '1.25rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                        }}>
-                            <UserIcon size={18} style={{ color: 'var(--color-accent)' }} />
+                    <div className="card form-section">
+                        <h3 className="form-section-title">
+                            <UserIcon size={18} />
                             Informations du compte
                         </h3>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div className="form-column">
                             {/* Username */}
                             <div className="form-group">
                                 <label>{t('users.username')}</label>
@@ -221,8 +214,8 @@ export default function EditUser() {
 
                             {/* Password */}
                             <div className="form-group">
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Key size={14} style={{ color: 'var(--color-accent)' }} />
+                                <label className="form-label-icon">
+                                    <Key size={14} className="text-accent" />
                                     {isCreating ? t('auth.password') : t('user_settings.new_password')}
                                 </label>
                                 <input
@@ -234,17 +227,17 @@ export default function EditUser() {
                                     className="input"
                                 />
                                 {!isCreating && (
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                                    <p className="helper-text">
                                         Laissez vide pour conserver le mot de passe actuel
                                     </p>
                                 )}
                             </div>
 
                             {/* Role & Language */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div className="form-grid-2">
                                 <div className="form-group">
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Shield size={14} style={{ color: 'var(--color-accent)' }} />
+                                    <label className="form-label-icon">
+                                        <Shield size={14} className="text-accent" />
                                         {t('users.role')}
                                     </label>
                                     <Select
@@ -257,8 +250,8 @@ export default function EditUser() {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Globe size={14} style={{ color: 'var(--color-accent)' }} />
+                                    <label className="form-label-icon">
+                                        <Globe size={14} className="text-accent" />
                                         {t('settings.language')}
                                     </label>
                                     <Select
@@ -284,20 +277,13 @@ export default function EditUser() {
                     </div>
 
                     {/* Right Column - Personalization */}
-                    <div className="card" style={{ padding: '1.5rem' }}>
-                        <h3 style={{
-                            fontSize: '1rem',
-                            fontWeight: 600,
-                            marginBottom: '1.25rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                        }}>
-                            <Palette size={18} style={{ color: 'var(--color-accent)' }} />
+                    <div className="card form-section">
+                        <h3 className="form-section-title">
+                            <Palette size={18} />
                             Personnalisation
                         </h3>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div className="form-column">
                             {/* Accent Color */}
                             <div className="form-group">
                                 <label>{t('user_settings.accent_color')}</label>
@@ -332,12 +318,12 @@ export default function EditUser() {
 
                             {/* Server Allocation */}
                             <div className="form-group">
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Server size={14} style={{ color: 'var(--color-accent)' }} />
+                                <label className="form-label-icon">
+                                    <Server size={14} className="text-accent" />
                                     Serveurs alloués
                                 </label>
                                 {servers.length === 0 ? (
-                                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                                    <p className="helper-text">
                                         Aucun serveur disponible
                                     </p>
                                 ) : (
@@ -363,65 +349,42 @@ export default function EditUser() {
 
                     {/* Full Width - User Info (only when editing) */}
                     {!isCreating && user && (
-                        <div className="card" style={{ padding: '1.5rem', gridColumn: '1 / -1' }}>
-                            <h3 style={{
-                                fontSize: '1rem',
-                                fontWeight: 600,
-                                marginBottom: '1.25rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}>
-                                <Clock size={18} style={{ color: 'var(--color-accent)' }} />
+                        <div className="card form-section full-width">
+                            <h3 className="form-section-title">
+                                <Clock size={18} />
                                 Informations système
                             </h3>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                                <div style={{
-                                    padding: '1rem',
-                                    background: 'var(--color-bg-secondary)',
-                                    borderRadius: '8px'
-                                }}>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
+                            <div className="system-info-grid">
+                                <div className="system-info-card">
+                                    <p className="system-info-card__label">
                                         Créé le
                                     </p>
-                                    <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                                    <p className="system-info-card__value">
                                         {formatDate(user.created_at)}
                                     </p>
                                 </div>
-                                <div style={{
-                                    padding: '1rem',
-                                    background: 'var(--color-bg-secondary)',
-                                    borderRadius: '8px'
-                                }}>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
+                                <div className="system-info-card">
+                                    <p className="system-info-card__label">
                                         Modifié le
                                     </p>
-                                    <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                                    <p className="system-info-card__value">
                                         {formatDate(user.updated_at)}
                                     </p>
                                 </div>
-                                <div style={{
-                                    padding: '1rem',
-                                    background: 'var(--color-bg-secondary)',
-                                    borderRadius: '8px'
-                                }}>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
+                                <div className="system-info-card">
+                                    <p className="system-info-card__label">
                                         Dernière connexion
                                     </p>
-                                    <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                                    <p className="system-info-card__value">
                                         {formatDate(user.last_login)}
                                     </p>
                                 </div>
-                                <div style={{
-                                    padding: '1rem',
-                                    background: 'var(--color-bg-secondary)',
-                                    borderRadius: '8px'
-                                }}>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
+                                <div className="system-info-card">
+                                    <p className="system-info-card__label">
                                         Dernière IP
                                     </p>
-                                    <p style={{ fontSize: '0.875rem', fontWeight: 500, fontFamily: 'var(--font-family-mono)' }}>
+                                    <p className="system-info-card__value system-info-card__value--mono">
                                         {user.last_ip || '—'}
                                     </p>
                                 </div>
@@ -432,35 +395,20 @@ export default function EditUser() {
 
                 {/* Error Message */}
                 {error && (
-                    <div style={{
-                        marginTop: '1rem',
-                        padding: '0.75rem 1rem',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        borderRadius: '8px',
-                        color: '#ef4444',
-                        fontSize: '0.875rem',
-                        maxWidth: '900px'
-                    }}>
+                    <div className="alert alert--error">
                         {error}
                     </div>
                 )}
 
                 {/* Actions */}
-                <div style={{
-                    display: 'flex',
-                    gap: '1rem',
-                    marginTop: '1.5rem',
-                    maxWidth: '900px'
-                }}>
-                    <Link to="/panel-settings?tab=users" className="btn btn--secondary" style={{ minWidth: '120px' }}>
+                <div className="action-footer">
+                    <Link to="/panel-settings?tab=users" className="btn btn--secondary btn-cancel">
                         {t('common.cancel')}
                     </Link>
                     <button
                         type="submit"
-                        className="btn btn--primary"
+                        className="btn btn--primary btn-save"
                         disabled={isSaving || !formData.username}
-                        style={{ minWidth: '180px' }}
                     >
                         {isSaving ? (
                             t('common.loading')

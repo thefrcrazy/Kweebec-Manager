@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Plus, Server, FolderOpen, Upload, FolderArchive,
-    Network, Rocket, Play
+    Rocket, Play
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePageTitle } from '../contexts/PageTitleContext';
@@ -213,65 +213,33 @@ export default function CreateServer() {
         setFormData(prev => ({ ...prev, [key]: value }));
     };
 
-    const isImportMode = creationMode === 'existing' || creationMode === 'zip';
-
     return (
         <div className="create-server-page">
 
             {/* Creation Mode Tabs */}
-            <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                marginBottom: '1.5rem',
-                maxWidth: '800px',
-                margin: '0 auto 1.5rem auto'
-            }}>
+            <div className="creation-mode-tabs">
                 {creationModes.map((mode) => (
                     <button
                         key={mode.id}
                         type="button"
                         onClick={() => setCreationMode(mode.id)}
-                        style={{
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '1rem',
-                            background: creationMode === mode.id
-                                ? 'var(--color-accent)'
-                                : 'var(--color-bg-secondary)',
-                            border: `2px solid ${creationMode === mode.id
-                                ? 'var(--color-accent)'
-                                : 'var(--color-border)'}`,
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            color: creationMode === mode.id ? 'white' : 'var(--color-text-primary)',
-                            transition: 'all 0.2s ease',
-                        }}
+                        className={`creation-mode-btn ${creationMode === mode.id ? 'creation-mode-btn--active' : ''}`}
                     >
                         <mode.icon size={24} />
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{mode.label}</span>
+                        <span>{mode.label}</span>
                     </button>
                 ))}
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit}>
-                <div className="card" style={{ padding: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
-                    <h3 style={{
-                        fontSize: '1.1rem',
-                        fontWeight: 600,
-                        marginBottom: '1.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}>
-                        <Server size={20} style={{ color: 'var(--color-accent)' }} />
+                <div className="card server-config-card">
+                    <h3 className="server-config-title">
+                        <Server size={20} />
                         Configuration du serveur
                     </h3>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem' }}>
+                    <div className="server-config-grid">
 
                         {/* Server Name */}
                         <div className="form-group">
@@ -289,39 +257,32 @@ export default function CreateServer() {
                         {/* ZIP Upload or Directory */}
                         {creationMode === 'zip' ? (
                             <div className="form-group">
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Upload size={14} style={{ color: 'var(--color-accent)' }} />
+                                <label className="form-label-icon">
+                                    <Upload size={14} />
                                     Fichier ZIP
                                 </label>
-                                <div style={{
-                                    border: '2px dashed var(--color-border)',
-                                    borderRadius: '8px',
-                                    padding: '2rem',
-                                    textAlign: 'center',
-                                    cursor: 'pointer',
-                                    background: zipFile ? 'rgba(16, 185, 129, 0.1)' : 'var(--color-bg-secondary)'
-                                }}>
+                                <div className={`zip-upload-zone ${zipFile ? 'zip-upload-zone--active' : ''}`}>
                                     <input
                                         type="file"
                                         accept=".zip"
                                         onChange={handleZipChange}
                                         id="zip-upload"
-                                        style={{ display: 'none' }}
+                                        className="hidden-input"
                                     />
-                                    <label htmlFor="zip-upload" style={{ cursor: 'pointer', width: '100%' }}>
+                                    <label htmlFor="zip-upload" className="zip-upload-content">
                                         {zipFile ? (
                                             <>
-                                                <FolderArchive size={32} style={{ color: '#10b981', marginBottom: '0.5rem' }} />
-                                                <p style={{ fontWeight: 600, color: '#10b981' }}>{zipFile.name}</p>
-                                                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                                <FolderArchive size={32} className="zip-upload-file-icon" />
+                                                <p className="zip-upload-file-name">{zipFile.name}</p>
+                                                <p className="helper-text">
                                                     {(zipFile.size / 1024 / 1024).toFixed(2)} Mo
                                                 </p>
                                             </>
                                         ) : (
                                             <>
-                                                <Upload size={32} style={{ color: 'var(--color-text-muted)', marginBottom: '0.5rem' }} />
-                                                <p style={{ fontWeight: 600 }}>Cliquez pour sélectionner</p>
-                                                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                                <Upload size={32} className="zip-upload-icon" />
+                                                <p className="zip-upload-text">Cliquez pour sélectionner</p>
+                                                <p className="helper-text">
                                                     Archive .zip du serveur
                                                 </p>
                                             </>
@@ -332,8 +293,8 @@ export default function CreateServer() {
                         ) : (
                             /* Working Directory */
                             <div className="form-group">
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <FolderOpen size={14} style={{ color: 'var(--color-accent)' }} />
+                                <label className="form-label-icon">
+                                    <FolderOpen size={14} />
                                     {creationMode === 'existing' ? 'Répertoire existant' : 'Répertoire du serveur'}
                                 </label>
                                 <input
@@ -342,10 +303,9 @@ export default function CreateServer() {
                                     onChange={(e) => updateFormData('working_dir', e.target.value)}
                                     placeholder="/home/hytale/servers/mon-serveur"
                                     required
-                                    className="input"
-                                    style={{ fontFamily: 'var(--font-family-mono)' }}
+                                    className="input font-mono"
                                 />
-                                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                                <p className="helper-text helper-text--block">
                                     {creationMode === 'existing'
                                         ? 'Chemin vers le dossier contenant le serveur existant'
                                         : 'Chemin où le serveur sera installé'}
@@ -353,7 +313,7 @@ export default function CreateServer() {
                             </div>
                         )}
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                        <div className="server-config-row">
                             {/* RAM Min */}
                             <div className="form-group">
                                 <label>RAM Min (Xms)</label>
@@ -392,12 +352,12 @@ export default function CreateServer() {
                         </div>
 
                         {/* Hidden Defaults Confirmation */}
-                        <div style={{ padding: '0.75rem', background: 'var(--color-bg-secondary)', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                        <div className="advanced-defaults">
+                            <div className="advanced-defaults__header">
                                 <Rocket size={14} />
                                 <span>Paramètres avancés configurés par défaut :</span>
                             </div>
-                            <ul style={{ paddingLeft: '1.5rem', margin: 0 }}>
+                            <ul>
                                 <li>Arguments JVM optimisés (AOT activé)</li>
                                 <li>Authentification activée</li>
                                 <li>Sauvegardes désactivées (configurable après création)</li>
@@ -407,20 +367,12 @@ export default function CreateServer() {
                     </div>
 
                     {error && (
-                        <div style={{
-                            marginTop: '1.5rem',
-                            padding: '0.75rem 1rem',
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                            borderRadius: '8px',
-                            color: '#ef4444',
-                            fontSize: '0.875rem'
-                        }}>
+                        <div className="error-banner">
                             {error}
                         </div>
                     )}
 
-                    <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    <div className="form-footer">
                         <button
                             type="button"
                             className="btn btn--secondary"

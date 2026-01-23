@@ -95,13 +95,8 @@ export default function Tooltip({
                 <div
                     className={`tooltip tooltip--${position}`}
                     style={{
-                        position: 'fixed',
                         top: coords.top,
-                        left: coords.left,
-                        transform: position === 'top' || position === 'bottom'
-                            ? 'translateX(-50%)'
-                            : 'translateY(-50%)',
-                        zIndex: 9999
+                        left: coords.left
                     }}
                 >
                     {content}

@@ -316,34 +316,15 @@ export default function PanelSettings() {
     ];
 
     return (
-        <div>
+        <div className="settings-page">
 
             {/* Tabs */}
-            <div style={{
-                display: 'flex',
-                gap: '0.25rem',
-                marginBottom: '1.5rem',
-                borderBottom: '1px solid var(--color-border)',
-                paddingBottom: '0'
-            }}>
+            <div className="tabs-nav">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => handleTabChange(tab.id)}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.75rem 1.25rem',
-                            background: 'transparent',
-                            border: 'none',
-                            borderBottom: activeTab === tab.id ? '2px solid var(--color-accent)' : '2px solid transparent',
-                            color: activeTab === tab.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                            fontWeight: activeTab === tab.id ? 600 : 400,
-                            cursor: 'pointer',
-                            marginBottom: '-1px',
-                            transition: 'all 0.2s ease'
-                        }}
+                        className={`tab-btn ${activeTab === tab.id ? 'tab-btn--active' : ''}`}
                     >
                         <tab.icon size={18} />
                         {tab.label}
@@ -363,7 +344,7 @@ export default function PanelSettings() {
                             {t('panel_settings.discord_title')}
                         </h3>
 
-                        <p className="form-hint" style={{ marginBottom: '1rem' }}>
+                        <p className="form-hint mb-4">
                             Configuration globale des notifications Discord pour tous les serveurs.
                         </p>
 
@@ -390,7 +371,7 @@ export default function PanelSettings() {
                             {isTestingWebhook ? t('panel_settings.test_success') : t('panel_settings.test_webhook')}
                         </button>
                         {webhookTestResult && (
-                            <p className={`form-hint ${webhookTestResult.success ? 'text-success' : 'text-danger'}`} style={{ marginTop: '0.5rem' }}>
+                            <p className={`form-hint mt-2 ${webhookTestResult.success ? 'text-success' : 'text-danger'}`}>
                                 {webhookTestResult.message}
                             </p>
                         )}
@@ -404,7 +385,7 @@ export default function PanelSettings() {
                         </h3>
 
                         {panelInfo.is_docker && (
-                            <div className="alert alert--info" style={{ marginBottom: '1rem' }}>
+                            <div className="alert alert--info mb-4">
                                 <AlertTriangle size={16} />
                                 <span>Les chemins sont gérés par Docker et ne peuvent pas être modifiés.</span>
                             </div>
@@ -468,7 +449,7 @@ export default function PanelSettings() {
                             {t('panel_settings.appearance_title')}
                         </h3>
 
-                        <p className="form-hint" style={{ marginBottom: '1rem' }}>
+                        <p className="form-hint mb-4">
                             Ces paramètres s'appliquent à tous les nouveaux utilisateurs par défaut.
                         </p>
 
@@ -506,7 +487,7 @@ export default function PanelSettings() {
 
                         <div className="form-group">
                             <label className="form-label">
-                                <Image size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                                <Image size={16} className="mr-2 v-middle" />
                                 Image de fond
                             </label>
                             <div className="info-list__input-group">
@@ -522,9 +503,8 @@ export default function PanelSettings() {
                                         type="file"
                                         id="bg-upload"
                                         accept="image/*"
-                                        className="file-input"
+                                        className="file-input hidden-input"
                                         onChange={handleImageUpload}
-                                        style={{ display: 'none' }}
                                     />
                                     <label
                                         htmlFor="bg-upload"
@@ -546,14 +526,7 @@ export default function PanelSettings() {
                                 <label className="form-label">Aperçu</label>
                                 <div
                                     className="login-preview__image"
-                                    style={{
-                                        backgroundImage: `url(${loginCustomization.background_url})`,
-                                        backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                        height: '120px',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid var(--color-border)'
-                                    }}
+                                    style={{ backgroundImage: `url(${loginCustomization.background_url})` }}
                                 />
                             </div>
                         )}
@@ -576,14 +549,13 @@ export default function PanelSettings() {
             {/* Users Tab */}
             {activeTab === 'users' && (
                 <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div className="user-list-header">
                         <input
                             type="text"
                             placeholder="Rechercher un utilisateur..."
-                            className="form-input"
+                            className="form-input search-input"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{ maxWidth: '300px' }}
                         />
                         <Link to="/panel-settings/users/new" className="btn btn--primary">
                             <Plus size={18} />
@@ -598,7 +570,7 @@ export default function PanelSettings() {
                                 <th>{t('users.role')}</th>
                                 <th>{t('users.status')}</th>
                                 <th>{t('users.last_login')}</th>
-                                <th style={{ width: '120px' }}>{t('common.actions')}</th>
+                                <th className="table-col-actions">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -661,7 +633,7 @@ export default function PanelSettings() {
             {/* Roles Tab */}
             {activeTab === 'roles' && (
                 <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div className="user-list-header">
                         <p className="text-muted">Gérez les rôles et permissions de vos utilisateurs</p>
                         <button className="btn btn--primary">
                             <Plus size={18} />
@@ -675,27 +647,22 @@ export default function PanelSettings() {
                                 <th>Nom du rôle</th>
                                 <th>Permissions</th>
                                 <th>Utilisateurs</th>
-                                <th style={{ width: '120px' }}>{t('common.actions')}</th>
+                                <th className="table-col-actions">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {roles.map((role) => (
                                 <tr key={role.id}>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <div style={{
-                                                width: '12px',
-                                                height: '12px',
-                                                borderRadius: '50%',
-                                                background: role.color
-                                            }} />
-                                            <span style={{ fontWeight: 600 }}>{role.name}</span>
+                                        <div className="role-cell">
+                                            <div className="role-cell__dot" style={{ background: role.color }} />
+                                            <span className="role-cell__name">{role.name}</span>
                                         </div>
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                                        <div className="permissions-list">
                                             {role.permissions.map(perm => (
-                                                <span key={perm} className="badge badge--secondary" style={{ fontSize: '0.7rem' }}>
+                                                <span key={perm} className="badge badge--secondary permission-badge">
                                                     {perm}
                                                 </span>
                                             ))}
@@ -719,7 +686,7 @@ export default function PanelSettings() {
                         </tbody>
                     </Table>
 
-                    <div className="alert alert--info" style={{ marginTop: '1rem' }}>
+                    <div className="alert alert--info mt-4">
                         <AlertTriangle size={16} />
                         <span>La gestion avancée des rôles sera disponible dans une prochaine version.</span>
                     </div>

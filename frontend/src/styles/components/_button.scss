@@ -53,6 +53,17 @@
         }
     }
 
+    // Danger Button Solid (red background)
+    &--danger-solid {
+        background-color: var(--color-danger);
+        color: var(--color-text-inverse);
+        font-weight: 600;
+
+        &:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+    }
+
     // Success Button
     &--success {
         background-color: rgba(16, 185, 129, 0.1);
@@ -65,19 +76,19 @@
 
     // Sizes
     &--sm {
-        padding: var(--spacing-1) var(--spacing-3);
-        font-size: 0.75rem;
+        padding: 0.125rem var(--spacing-2);
+        font-size: 0.6875rem;
     }
 
     &--lg {
-        padding: var(--spacing-3) var(--spacing-6);
-        font-size: 1rem;
+        padding: var(--spacing-2) var(--spacing-5);
+        font-size: 0.875rem;
     }
 
     &--icon {
-        padding: var(--spacing-2);
+        padding: var(--spacing-1);
         aspect-ratio: 1;
-        height: 40px;
+        height: 34px;
     }
 
     // Full width
@@ -102,16 +113,16 @@
 
 // Spinner
 .spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid var(--color-border);
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border);
     border-top-color: var(--color-accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 
     &--sm {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         border-width: 2px;
     }
 

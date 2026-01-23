@@ -7,7 +7,7 @@ interface TableProps {
 
 export default function Table({ children, className = '' }: TableProps) {
     return (
-        <div className={`card ${className}`} style={{ padding: 0, overflow: 'hidden' }}>
+        <div className={`card card--table ${className}`}>
             <div className="table-container">
                 <table className="table">
                     {children}

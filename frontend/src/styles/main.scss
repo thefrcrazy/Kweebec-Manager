@@ -14,9 +14,16 @@
 @use 'components/directory-picker';
 @use 'components/select';
 @use 'components/form';
+@use 'components/range';
 
 // Pages
 @use 'pages/login';
 @use 'pages/dashboard';
 @use 'pages/settings';
+@use 'pages/user-settings';
+@use 'pages/servers';
+@use 'pages/setup';
 @use 'pages/users';
+@use 'pages/server-detail';
+@use 'pages/create-server';
+@use 'pages/edit-user';

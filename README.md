@@ -6,6 +6,12 @@
 
 **Gestionnaire de serveurs de jeux moderne et performant** — Inspiré de [Crafty Controller](https://craftycontrol.com/), conçu pour Hytale et au-delà.
 
+## 🚧 Statut du projet
+
+Ce projet est actuellement **en cours de développement** (WORK IN PROGRESS).
+
+Des **fichiers de release** (binaires/archives) seront mis à disposition une fois une version stable finalisée.
+
 ![Dashboard Preview](docs/assets/dashboard-preview.png)
 
 ---
@@ -58,13 +64,13 @@ irm https://raw.githubusercontent.com/thefrcrazy/kweebec-manager/main/install/wi
 
 ## 🛠️ Stack Technique
 
-| Composant | Technologie |
-|-----------|-------------|
-| **Frontend** | React + Vite + TypeScript + SCSS |
-| **Backend** | Rust + Actix-Web |
-| **Base de données** | SQLite |
-| **Runtime** | Bun (frontend), Tokio (backend) |
-| **Containerisation** | Docker + Docker Compose |
+| Composant            | Technologie                      |
+| -------------------- | -------------------------------- |
+| **Frontend**         | React + Vite + TypeScript + SCSS |
+| **Backend**          | Rust + Actix-Web                 |
+| **Base de données**  | SQLite                           |
+| **Runtime**          | Bun (frontend), Tokio (backend)  |
+| **Containerisation** | Docker + Docker Compose          |
 
 ---
 

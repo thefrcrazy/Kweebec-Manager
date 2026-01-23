@@ -29,14 +29,14 @@
     --color-danger: #EF4444;
     --color-info: #3B82F6;
 
-    // Spacing
-    --spacing-1: 0.25rem; // 4px
-    --spacing-2: 0.5rem; // 8px
-    --spacing-3: 0.75rem; // 12px
-    --spacing-4: 1rem; // 16px
-    --spacing-5: 1.5rem; // 24px
-    --spacing-6: 2rem; // 32px
-    --spacing-8: 3rem; // 48px
+    // Spacing (compact)
+    --spacing-1: 0.125rem; // 2px
+    --spacing-2: 0.375rem; // 6px
+    --spacing-3: 0.5rem; // 8px
+    --spacing-4: 0.75rem; // 12px
+    --spacing-5: 1rem; // 16px
+    --spacing-6: 1.25rem; // 20px
+    --spacing-8: 1.5rem; // 24px
 
     // Radius
     --radius-sm: 2px;
@@ -60,20 +60,20 @@
     --font-family-sans: 'Inter', -apple-system, system-ui, sans-serif;
     --font-family-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
 
-    // Font sizes
-    --font-size-xs: 0.75rem;
-    --font-size-sm: 0.875rem;
-    --font-size-base: 1rem;
-    --font-size-lg: 1.125rem;
-    --font-size-xl: 1.25rem;
-    --font-size-2xl: 1.5rem;
-    --font-size-3xl: 1.875rem;
-    --font-size-4xl: 2.25rem;
+    // Font sizes (compact)
+    --font-size-xs: 0.6875rem;
+    --font-size-sm: 0.8125rem;
+    --font-size-base: 0.875rem;
+    --font-size-lg: 1rem;
+    --font-size-xl: 1.125rem;
+    --font-size-2xl: 1.25rem;
+    --font-size-3xl: 1.5rem;
+    --font-size-4xl: 1.75rem;
 
-    // Layout
-    --header-height: 64px;
-    --sidebar-width: 280px;
-    --sidebar-collapsed-width: 72px;
+    // Layout (compact)
+    --header-height: 52px;
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 56px;
 
     // Breakpoints (for reference, used in media queries)
     --breakpoint-sm: 640px;

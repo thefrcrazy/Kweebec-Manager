@@ -27,12 +27,29 @@ impl ProcessManager {
     }
 
     pub fn is_running(&self, server_id: &str) -> bool {
-        // We need a blocking check here, but for simplicity we'll use try_read
-        if let Ok(processes) = self.processes.try_read() {
-            processes.contains_key(server_id)
-        } else {
-            false
+        // We need to check if the process is actually alive, not just in the map
+        if let Ok(mut processes) = self.processes.try_write() {
+            if let Some(proc) = processes.get_mut(server_id) {
+                // Check if process is still running
+                match proc.child.try_wait() {
+                    Ok(None) => {
+                        // Process is still running
+                        return true;
+                    }
+                    Ok(Some(_status)) => {
+                        // Process has exited, remove from map
+                        info!("Server {} process has exited, cleaning up", server_id);
+                        processes.remove(server_id);
+                        return false;
+                    }
+                    Err(_) => {
+                        // Error checking status, assume not running
+                        return false;
+                    }
+                }
+            }
         }
+        false
     }
 
     pub fn subscribe_logs(&self, server_id: &str) -> broadcast::Receiver<String> {
@@ -160,6 +177,25 @@ impl ProcessManager {
 
         processes.remove(server_id);
         info!("Stopped server {}", server_id);
+
+        Ok(())
+    }
+
+    /// Force kill a server immediately without graceful shutdown
+    pub async fn kill(&self, server_id: &str) -> Result<(), AppError> {
+        let mut processes = self.processes.write().await;
+
+        let proc = processes
+            .get_mut(server_id)
+            .ok_or_else(|| AppError::NotFound("Server not running".into()))?;
+
+        // Force kill immediately
+        proc.child
+            .kill()
+            .map_err(|e| AppError::Internal(format!("Failed to kill server: {}", e)))?;
+
+        processes.remove(server_id);
+        info!("Killed server {}", server_id);
 
         Ok(())
     }

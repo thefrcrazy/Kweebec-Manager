@@ -82,7 +82,7 @@ const Select: React.FC<SelectProps> = ({
                             {option.icon && <span className="custom-select__icon">{option.icon}</span>}
                             <span>{option.label}</span>
                             {option.value === value && (
-                                <Check size={16} style={{ marginLeft: 'auto' }} />
+                                <Check size={16} className="custom-select__option__check" />
                             )}
                         </div>
                     ))}
