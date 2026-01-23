@@ -9,18 +9,7 @@ import { usePageTitle } from '../contexts/PageTitleContext';
 
 type CreationMode = 'normal' | 'existing' | 'zip';
 
-// Liste des arguments JVM recommandés pour Hytale
-const JVM_ARGS_SUGGESTIONS = [
-    { arg: '-XX:AOTCache=HytaleServer.aot', desc: 'Accélère considérablement le démarrage du serveur (AOT)', isRecommended: true },
-    { arg: '-XX:+UseG1GC', desc: 'Garbage Collector G1 - Équilibre latence et débit', isRecommended: false },
-    { arg: '-XX:+UseZGC', desc: 'Garbage Collector ZGC - Latence ultra-faible (<1ms)', isRecommended: false },
-    { arg: '-XX:MaxGCPauseMillis=50', desc: 'Limite les pauses du GC à 50ms max', isRecommended: false },
-    { arg: '-XX:+ParallelRefProcEnabled', desc: 'Traite les références en parallèle', isRecommended: false },
-    { arg: '-XX:+DisableExplicitGC', desc: 'Ignore les appels System.gc()', isRecommended: false },
-    { arg: '-XX:+AlwaysPreTouch', desc: 'Précharge toute la RAM au démarrage', isRecommended: false },
-    { arg: '-XX:+UseStringDeduplication', desc: 'Déduplique les chaînes pour économiser la RAM', isRecommended: false },
-    { arg: '-Dfile.encoding=UTF-8', desc: 'Force l\'encodage UTF-8', isRecommended: false },
-];
+
 
 interface ServerFormData {
     name: string;
@@ -38,7 +27,7 @@ interface ServerFormData {
     java_path: string;
     extra_args: string;
 
-    assets_path: string;
+
     accept_early_plugins: boolean;
 
     backup_enabled: boolean;
@@ -93,8 +82,9 @@ export default function CreateServer() {
         max_memory: '4G',
         min_memory: '4G',
         java_path: '',
-        extra_args: JVM_ARGS_SUGGESTIONS.filter(s => s.isRecommended).map(s => s.arg).join(' '),
-        assets_path: '../HytaleAssets',
+        // AOT is hardcoded in backend
+        extra_args: '',
+
         accept_early_plugins: false,
         backup_enabled: false,
         backup_dir: '',
@@ -177,7 +167,7 @@ export default function CreateServer() {
                         game_type: 'hytale',
                         java_path: formData.java_path || null,
                         extra_args: formData.extra_args || null,
-                        assets_path: formData.assets_path || null,
+                        // assets_path: fixed to Assets.zip by backend
                         backup_dir: formData.backup_dir || null,
                         seed: formData.seed || null,
                         import_existing: creationMode === 'existing',

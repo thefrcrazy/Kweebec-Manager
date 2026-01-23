@@ -122,22 +122,24 @@ async fn create_server(
 
     // Create server directory with ID subdirectory
     // Structure:
-    //   {uuid}/manager/          - Manager-specific files (server.conf, discord.conf, backups/)
+    //   {uuid}/manager.json      - Manager config
     //   {uuid}/server/           - Hytale server files (working directory)
     let server_base_path = Path::new(&body.working_dir).join(&id);
     let server_path = server_base_path.join("server");
-    let manager_path = server_base_path.join("manager");
-    let backups_path = manager_path.join("backups");
+    // let manager_path = server_base_path.join("manager"); // Removed in favor of root
     
-    // Create all directories (Hytale official structure + manager)
+    // Create all directories (Hytale official structure)
     let directories = [
         &server_base_path,
-        // Manager-specific
-        &manager_path,
-        &backups_path,
-        // Hytale server structure
         &server_path,
         &server_path.join(".cache"),
+        &server_path.join("mods"),
+        &server_path.join("logs"),
+        &server_path.join("universe"),
+        &server_path.join("universe/players"),
+        &server_path.join("universe/worlds"),
+        &server_path.join("universe/worlds/default"),
+    ];
         &server_path.join("mods"),
         &server_path.join("logs"),
         &server_path.join("universe"),
@@ -238,7 +240,7 @@ async fn create_server(
         body.min_memory.as_deref(),
         body.max_memory.as_deref(),
     );
-    let manager_json_path = manager_path.join("manager.json");
+    let manager_json_path = server_base_path.join("manager.json");
     let mut file = fs::File::create(&manager_json_path).await.map_err(|e| {
         AppError::Internal(format!("Failed to create manager.json: {}", e))
     })?;
@@ -428,10 +430,14 @@ async fn start_server(
     .await?
     .ok_or_else(|| AppError::NotFound("Server not found".into()))?;
 
+    // We must run the server binary from the 'server' subdirectory to ensure it finds config.json
+    let process_working_dir = Path::new(&server.working_dir).join("server");
+    let process_working_dir_str = process_working_dir.to_str().unwrap_or(&server.working_dir);
+
     pm.start(
         &server.id,
         &server.executable_path,
-        &server.working_dir,
+        process_working_dir_str,
         server.java_path.as_deref(),
         server.min_memory.as_deref(),
         server.max_memory.as_deref(),
@@ -503,10 +509,14 @@ async fn restart_server(
     .await?
     .ok_or_else(|| AppError::NotFound("Server not found".into()))?;
 
+    // We must run the server binary from the 'server' subdirectory to ensure it finds config.json
+    let process_working_dir = Path::new(&server.working_dir).join("server");
+    let process_working_dir_str = process_working_dir.to_str().unwrap_or(&server.working_dir);
+
     pm.restart(
         &server.id,
         &server.executable_path,
-        &server.working_dir,
+        process_working_dir_str,
         server.java_path.as_deref(),
         server.min_memory.as_deref(),
         server.max_memory.as_deref(),

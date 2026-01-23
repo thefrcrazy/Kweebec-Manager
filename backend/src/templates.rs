@@ -25,7 +25,7 @@ pub fn generate_config_json(
         "MOTD": "",
         "Password": "",
         "MaxPlayers": max_players,
-        "MaxViewRadius": 32,
+        "MaxViewRadius": 12,
         "Defaults": {
             "World": "default",
             "GameMode": "Adventure"
