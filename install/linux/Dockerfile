@@ -4,7 +4,7 @@
 FROM oven/bun:1 AS frontend-builder
 
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/bun.lockb* ./
+COPY frontend/package.json frontend/bun.lock* ./
 RUN bun install --frozen-lockfile
 
 COPY frontend/ ./
@@ -26,10 +26,17 @@ RUN cargo build --release
 # ==========================================
 FROM debian:bookworm-slim
 
-# Install runtime dependencies
+# Install runtime dependencies and Java 25
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
+    wget \
+    gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb bookworm main" | tee /etc/apt/sources.list.d/adoptium.list \
+    && apt-get update \
+    && apt-get install -y temurin-25-jdk \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
